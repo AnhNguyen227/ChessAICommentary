@@ -7,6 +7,7 @@ import passport from "passport";
 import dotenv from "dotenv";
 import { connectDB } from "./config/db";
 import authRoutes from "./routes/auth";
+import "./config/passport";
 
 dotenv.config();
 
