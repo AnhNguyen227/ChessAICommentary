@@ -8,6 +8,8 @@ import dotenv from "dotenv";
 import { connectDB } from "./config/db";
 import authRoutes from "./routes/auth";
 import "./config/passport";
+import { initSocket } from "./socket/index";
+import { Server } from "socket.io";
 
 dotenv.config();
 
@@ -49,3 +51,12 @@ server.listen(PORT, () => {
 });
 
 export { server };
+
+const io = new Server(server, {
+  cors: {
+    origin: process.env.CLIENT_URL,
+    credentials: true,
+  },
+});
+
+initSocket(io);
