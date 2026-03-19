@@ -11,7 +11,11 @@ export interface IGame extends Document {
   };
   status: "waiting" | "active" | "completed";
   winner: "host" | "away" | "draw" | null;
-  endReason: "checkmate" | "forfeit" | "timeout" | "draw" | "resign" | null;
+  endReason:
+  | "checkmate" | "forfeit" | "timeout" | "resign"
+  | "draw" | "stalemate" | "insufficient_material"
+  | "threefold_repetition" | "fifty_move_rule"
+  | null;
   moves: string[];
   pgn: string;
   isStockfish: boolean;
@@ -41,7 +45,12 @@ const GameSchema = new Schema<IGame>(
     },
     endReason: {
       type: String,
-      enum: ["checkmate", "forfeit", "timeout", "draw", "resign", null],
+      enum: [
+        "checkmate", "forfeit", "timeout", "resign",
+        "draw", "stalemate", "insufficient_material",
+        "threefold_repetition", "fifty_move_rule",
+        null
+      ],
       default: null,
     },
     moves: [{ type: String }],

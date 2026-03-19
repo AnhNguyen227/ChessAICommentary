@@ -25,7 +25,10 @@ const handleGameOver = async (
   io: Server,
   roomId: string,
   winner: "host" | "away" | "draw",
-  endReason: "checkmate" | "forfeit" | "timeout" | "draw" | "resign"
+  endReason:
+    | "checkmate" | "forfeit" | "timeout" | "resign"
+    | "draw" | "stalemate" | "insufficient_material"
+    | "threefold_repetition" | "fifty_move_rule"
 ): Promise<void> => {
   const room = getRoom(roomId);
   if (!room) return;
@@ -318,10 +321,24 @@ export const initSocket = (io: Server): void => {
         await handleGameOver(io, data.roomId, winner, "checkmate");
         return;
       }
-      if (chess.isDraw()) {
-        await handleGameOver(io, data.roomId, "draw", "draw");
+      if (chess.isStalemate()) {
+        await handleGameOver(io, data.roomId, "draw", "stalemate");
         return;
       }
+      if (chess.isInsufficientMaterial()) {
+        await handleGameOver(io, data.roomId, "draw", "insufficient_material");
+        return;
+      }
+      if (chess.isThreefoldRepetition()) {
+        await handleGameOver(io, data.roomId, "draw", "threefold_repetition");
+        return;
+      }
+      if (chess.isDraw()) {
+        // catches 50-move rule
+        await handleGameOver(io, data.roomId, "draw", "fifty_move_rule");
+        return;
+      }
+
     });
 
     // ─── GAME:RESIGN ──────────────────────────────────────────
