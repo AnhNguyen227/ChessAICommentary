@@ -11,6 +11,12 @@ import {
   getRoomBySocketId,
   Room,
 } from "../services/roomStore";
+import { createStockfishProcess, getBestMoveAndEval, getEval } from "../services/stockfish";
+import { ChildProcessWithoutNullStreams } from "child_process";
+
+const stockfishProcesses = new Map<string, ChildProcessWithoutNullStreams>();
+
+const roomTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
 const TIME_CONTROLS: Record<string, { minutes: number; increment: number }> = {
   "blitz-3": { minutes: 3, increment: 0 },
@@ -47,6 +53,12 @@ const handleGameOver = async (
     endReason,
     pgn: room.game.pgn,
   });
+
+  const sf = stockfishProcesses.get(roomId);
+  if (sf) {
+    sf.kill();
+    stockfishProcesses.delete(roomId);
+  }
 
   deleteRoom(roomId);
 };
@@ -145,6 +157,18 @@ export const initSocket = (io: Server): void => {
           createRoom(roomId, room);
           socket.join(roomId);
 
+          // Auto-expire room after 10 minutes if still waiting
+          const expiryTimer = setTimeout(async () => {
+            const room = getRoom(roomId);
+            if (room && room.game.status === "waiting") {
+              await Game.findOneAndDelete({ roomId });
+              deleteRoom(roomId);
+              io.to(roomId).emit("room:expired");
+            }
+          }, 10 * 60 * 1000);
+
+          roomTimers.set(roomId, expiryTimer);
+
           socket.emit("room:created", {
             roomId,
             hostColor: resolvedColor,
@@ -173,6 +197,10 @@ export const initSocket = (io: Server): void => {
         socket.emit("game:error", { message: "Room is full" });
         return;
       }
+      if (room.game.isStockfish) {
+        socket.emit("game:error", { message: "This room is a Stockfish game" });
+        return;
+      }
       if (room.hostSocketId === socket.id) {
         socket.emit("game:error", { message: "Cannot join your own room" });
         return;
@@ -183,6 +211,12 @@ export const initSocket = (io: Server): void => {
       await room.game.save();
 
       socket.join(data.roomId);
+
+      const timer = roomTimers.get(data.roomId);
+      if (timer) {
+        clearTimeout(timer);
+        roomTimers.delete(data.roomId);
+      }
 
       io.to(data.roomId).emit("room:joined", {
         roomId: data.roomId,
@@ -214,6 +248,12 @@ export const initSocket = (io: Server): void => {
       if (!room || room.hostSocketId !== socket.id) return;
       if (room.game.status === "active") return; // handled by resign/forfeit
 
+      const timer = roomTimers.get(data.roomId);
+      if (timer) {
+        clearTimeout(timer);
+        roomTimers.delete(data.roomId);
+      }
+
       await Game.findOneAndDelete({ roomId: data.roomId });
       deleteRoom(data.roomId);
 
@@ -230,10 +270,19 @@ export const initSocket = (io: Server): void => {
 
       room.game.status = "active";
       await room.game.save();
-
       updateRoom(data.roomId, { ...room, game: room.game });
 
       const chess = new Chess();
+
+      // Spawn Stockfish for every game (used for eval even in human vs human)
+      const sf = await createStockfishProcess();
+      stockfishProcesses.set(data.roomId, sf);
+
+      const timer = roomTimers.get(data.roomId);
+      if (timer) {
+        clearTimeout(timer);
+        roomTimers.delete(data.roomId);
+      }
 
       io.to(data.roomId).emit("game:started", {
         roomId: data.roomId,
@@ -246,25 +295,105 @@ export const initSocket = (io: Server): void => {
         },
       });
 
-      // Start the clock — white always moves first
       startClock(io, data.roomId);
+
+      // If Stockfish is playing as white, make the first move immediately
+      if (room.game.isStockfish) {
+        const chess = new Chess(); // fresh board, no moves yet
+        const stockfishColor = room.game.hostColor === "white" ? "black" : "white";
+        if (stockfishColor === "white") {
+          const depth = room.game.stockfishLevel ?? 10;
+          const { bestMove, evaluation } = await getBestMoveAndEval(sf, chess.fen(), depth);
+          io.to(data.roomId).emit("game:eval", { eval: evaluation });
+
+          const from = bestMove.slice(0, 2);
+          const to = bestMove.slice(2, 4);
+          const promotion = bestMove[4] ?? undefined;
+          const result = chess.move({ from, to, promotion });
+          if (result) {
+            await processMove(data.roomId, chess, result.san, "stockfish");
+          }
+        }
+      }
     });
+
+    // ─── PROCESS MOVE (shared logic for human and Stockfish moves) ────────────
+    async function processMove(
+      roomId: string,
+      chess: Chess,
+      moveStr: string,
+      movedBy: "host" | "away" | "stockfish"
+    ) {
+      const room = getRoom(roomId);
+      if (!room) return;
+
+      // Apply increment to the player who just moved
+      if (room.game.timeControl.increment > 0 && movedBy !== "stockfish") {
+        const incrementMs = room.game.timeControl.increment * 1000;
+        if (movedBy === "host") room.timer.hostMs += incrementMs;
+        else room.timer.awayMs += incrementMs;
+      }
+
+      // Save move
+      room.game.moves.push(moveStr);
+      room.game.pgn = chess.pgn();
+      await room.game.save();
+      updateRoom(roomId, { game: room.game, timer: room.timer });
+
+      // Emit updated state
+      io.to(roomId).emit("game:state", {
+        fen: chess.fen(),
+        lastMove: moveStr,
+        timerState: {
+          hostMs: room.timer.hostMs,
+          awayMs: room.timer.awayMs,
+        },
+        turn: chess.turn(),
+      });
+
+      // Check game over
+      if (chess.isCheckmate()) {
+        const winner = movedBy === "stockfish"
+          ? (room.game.hostColor === "white" ? "away" : "host") // stockfish wins
+          : movedBy;
+        await handleGameOver(io, roomId, winner, "checkmate");
+        return true;
+      }
+      if (chess.isStalemate()) {
+        await handleGameOver(io, roomId, "draw", "stalemate");
+        return true;
+      }
+      if (chess.isInsufficientMaterial()) {
+        await handleGameOver(io, roomId, "draw", "insufficient_material");
+        return true;
+      }
+      if (chess.isThreefoldRepetition()) {
+        await handleGameOver(io, roomId, "draw", "threefold_repetition");
+        return true;
+      }
+      if (chess.isDraw()) {
+        await handleGameOver(io, roomId, "draw", "fifty_move_rule");
+        return true;
+      }
+
+      return false; // game still ongoing
+    }
 
     // ─── GAME:MOVE ────────────────────────────────────────────
     socket.on("game:move", async (data: { roomId: string; move: string }) => {
       const room = getRoom(data.roomId);
-
       if (!room || room.game.status !== "active") return;
 
       const isHost = room.hostSocketId === socket.id;
       const isAway = room.awaySocketId === socket.id;
       if (!isHost && !isAway) return;
 
-      // Validate it's the correct player's turn
+      // Reconstruct board state
       const chess = new Chess();
       room.game.moves.forEach((move) => chess.move(move));
 
-      const turn = chess.turn(); // "w" or "b"
+      // Validate turn
+      const turn = chess.turn();
       const hostIsWhite = room.game.hostColor === "white";
       const isHostTurn = (turn === "w" && hostIsWhite) || (turn === "b" && !hostIsWhite);
 
@@ -277,7 +406,7 @@ export const initSocket = (io: Server): void => {
         return;
       }
 
-      // Validate and apply the move
+      // Validate and apply the human move
       let result;
       try {
         result = chess.move(data.move);
@@ -285,60 +414,48 @@ export const initSocket = (io: Server): void => {
         socket.emit("game:error", { message: "Invalid move" });
         return;
       }
-
       if (!result) {
         socket.emit("game:error", { message: "Invalid move" });
         return;
       }
 
-      // Apply increment to the player who just moved
-      if (room.game.timeControl.increment > 0) {
-        const incrementMs = room.game.timeControl.increment * 1000;
-        if (isHost) room.timer.hostMs += incrementMs;
-        else room.timer.awayMs += incrementMs;
-      }
+      const movedBy = isHost ? "host" : "away";
+      const gameOver = await processMove(data.roomId, chess, data.move, movedBy);
+      if (gameOver) return;
 
-      // Save move
-      room.game.moves.push(data.move);
-      room.game.pgn = chess.pgn();
-      await room.game.save();
-      updateRoom(data.roomId, { game: room.game, timer: room.timer });
+      // Stockfish response
+      const sf = stockfishProcesses.get(data.roomId);
+      if (!sf) return;
 
-      // Emit updated state to both players
-      io.to(data.roomId).emit("game:state", {
-        fen: chess.fen(),
-        lastMove: data.move,
-        timerState: {
-          hostMs: room.timer.hostMs,
-          awayMs: room.timer.awayMs,
-        },
-        turn: chess.turn(),
-      });
+      const stockfishColor = room.game.hostColor === "white" ? "black" : "white";
+      const stockfishTurn = stockfishColor === "white" ? "w" : "b";
 
-      // Check for game over conditions
-      if (chess.isCheckmate()) {
-        const winner = isHost ? "host" : "away";
-        await handleGameOver(io, data.roomId, winner, "checkmate");
-        return;
-      }
-      if (chess.isStalemate()) {
-        await handleGameOver(io, data.roomId, "draw", "stalemate");
-        return;
-      }
-      if (chess.isInsufficientMaterial()) {
-        await handleGameOver(io, data.roomId, "draw", "insufficient_material");
-        return;
-      }
-      if (chess.isThreefoldRepetition()) {
-        await handleGameOver(io, data.roomId, "draw", "threefold_repetition");
-        return;
-      }
-      if (chess.isDraw()) {
-        // catches 50-move rule
-        await handleGameOver(io, data.roomId, "draw", "fifty_move_rule");
-        return;
-      }
+      if (room.game.isStockfish && chess.turn() === stockfishTurn) {
+        // Get best move and eval in one shot
+        const depth = room.game.stockfishLevel ?? 10;
+        const { bestMove, evaluation } = await getBestMoveAndEval(sf, chess.fen(), depth);
 
+        io.to(data.roomId).emit("game:eval", { eval: evaluation });
+
+        const from = bestMove.slice(0, 2);
+        const to = bestMove.slice(2, 4);
+        const promotion = bestMove[4] ?? undefined;
+
+        let sfResult;
+        try {
+          sfResult = chess.move({ from, to, promotion });
+        } catch {
+          console.error("Stockfish returned an invalid move:", bestMove);
+          return;
+        }
+        if (!sfResult) return;
+
+        await processMove(data.roomId, chess, sfResult.san, "stockfish");
+      } else {
+        // Human vs human — just emit eval
+        const evaluation = await getEval(sf, chess.fen());
+        io.to(data.roomId).emit("game:eval", { eval: evaluation });
+      }
     });
 
     // ─── GAME:RESIGN ──────────────────────────────────────────
