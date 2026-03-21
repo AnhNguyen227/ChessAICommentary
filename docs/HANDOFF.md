@@ -27,7 +27,7 @@ CAIC/
 │   │   ├── components/game/
 │   │   │   ├── GameMenu.tsx       # ✅ Done
 │   │   │   ├── GameLobby.tsx      # ✅ Done
-│   │   │   ├── GameBoard.tsx      # ✅ Done (CORS bug being fixed)
+│   │   │   ├── GameBoard.tsx      # ✅ Done
 │   │   │   └── GameResult.tsx     # ✅ Done
 │   │   ├── context/
 │   │   │   ├── AuthContext.tsx    # ✅ Done

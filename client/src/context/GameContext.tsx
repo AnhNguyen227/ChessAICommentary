@@ -108,6 +108,12 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       setPhase("menu");
     });
 
+    socket.on("room:expired", () => {
+      setRoomInfo(null);
+      setPhase("menu");
+      setError("Room expired due to inactivity."); // or however you handle notifications
+    });
+
     socket.on("game:started", (data: GameState & { roomId: string; hostColor: "white" | "black"; timeControl: TimeControl }) => {
       setGameState({
         fen: data.fen,
