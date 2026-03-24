@@ -1,7 +1,7 @@
 import { useGame } from "../../context/GameContext";
 
 function GameLobby() {
-  const { roomInfo, isHost, leaveRoom, discardRoom, startGame, error, awayJoined } = useGame();
+  const { roomConfig: roomInfo, isHost, leaveRoom, discardRoom, startGame, error, awayJoined } = useGame();
 
   if (!roomInfo) return null;
 

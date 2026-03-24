@@ -21,6 +21,8 @@ function GameMenu() {
   const [hostColor, setHostColor] = useState<"white" | "black" | "random">("random");
   const [isStockfish, setIsStockfish] = useState(false);
   const [stockfishLevel, setStockfishLevel] = useState(5);
+  const [commentaryStyle, setCommentaryStyle] = useState("");
+
 
   // Join room state
   const [roomId, setRoomId] = useState("");
@@ -31,6 +33,7 @@ function GameMenu() {
       hostColor,
       isStockfish,
       stockfishLevel: isStockfish ? stockfishLevel : null,
+      commentaryStyle: commentaryStyle.trim() || null,
     });
   };
 
@@ -121,6 +124,16 @@ function GameMenu() {
           />
         </div>
       )}
+
+      <div>
+        <input
+          type="text"
+          placeholder='e.g. "Commentate like an Englishman from the 1800s"'
+          value={commentaryStyle}
+          onChange={(e) => setCommentaryStyle(e.target.value)}
+          maxLength={150}
+        />
+      </div>
 
       <button onClick={handleCreate}>Create Room</button>
       <button onClick={() => setMode("select")}>Back</button>

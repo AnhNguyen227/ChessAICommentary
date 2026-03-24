@@ -1,7 +1,7 @@
 import { useGame } from "../../context/GameContext";
 
 function GameResult() {
-  const { gameResult, roomInfo, isHost, backToMenu } = useGame();
+  const { gameResult, roomConfig: roomInfo, isHost, backToMenu } = useGame();
 
   if (!gameResult || !roomInfo) return null;
 

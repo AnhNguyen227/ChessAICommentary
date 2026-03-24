@@ -20,6 +20,7 @@ export interface IGame extends Document {
   pgn: string;
   isStockfish: boolean;
   stockfishLevel: number | null;
+  commentaryStyle: string | null;
   createdAt: Date;
 }
 
@@ -57,8 +58,9 @@ const GameSchema = new Schema<IGame>(
     pgn: { type: String, default: "" },
     isStockfish: { type: Boolean, default: false },
     stockfishLevel: { type: Number, default: null },
+    commentaryStyle: { type: String, default: null },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 export default mongoose.model<IGame>("Game", GameSchema);

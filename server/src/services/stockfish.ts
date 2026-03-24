@@ -66,11 +66,12 @@ export function getEval(
 export function getBestMoveAndEval(
   process: ChildProcessWithoutNullStreams,
   fen: string,
-  depth: number
+  skillLevel: number // 0–20
 ): Promise<{ bestMove: string; evaluation: number }> {
   return new Promise((resolve) => {
+    process.stdin.write(`setoption name Skill Level value ${skillLevel}\n`);
     process.stdin.write(`position fen ${fen}\n`);
-    process.stdin.write(`go depth ${depth}\n`);
+    process.stdin.write(`go depth 15\n`); // fixed depth, skill level controls strength
 
     let lastEval = 0;
     let resolved = false;

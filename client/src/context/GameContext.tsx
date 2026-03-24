@@ -28,7 +28,7 @@ interface GameResult {
   pgn: string;
 }
 
-interface RoomInfo {
+interface RoomConfig {
   roomId: string;
   hostColor: "white" | "black";
   timeControl: TimeControl;
@@ -40,7 +40,7 @@ type GamePhase = "menu" | "waiting" | "active" | "result";
 
 interface GameContextType {
   phase: GamePhase;
-  roomInfo: RoomInfo | null;
+  roomConfig: RoomConfig | null;
   gameState: GameState | null;
   gameResult: GameResult | null;
   error: string | null;
@@ -51,6 +51,7 @@ interface GameContextType {
     hostColor: "white" | "black" | "random";
     isStockfish: boolean;
     stockfishLevel: number | null;
+    commentaryStyle: string | null;
   }) => void;
   joinRoom: (roomId: string) => void;
   leaveRoom: () => void;
@@ -68,7 +69,7 @@ const GameContext = createContext<GameContextType | null>(null);
 
 export function GameProvider({ children }: { children: React.ReactNode }) {
   const [phase, setPhase] = useState<GamePhase>("menu");
-  const [roomInfo, setRoomInfo] = useState<RoomInfo | null>(null);
+  const [roomConfig, setRoomConfig] = useState<RoomConfig | null>(null);
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [gameResult, setGameResult] = useState<GameResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -80,20 +81,20 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     socket.connect();
 
-    socket.on("room:created", (data: RoomInfo) => {
-      setRoomInfo(data);
+    socket.on("room:created", (data: RoomConfig) => {
+      setRoomConfig(data);
       setIsHost(true);
       setPhase("waiting");
     });
 
-    socket.on("room:joined", (data: RoomInfo) => {
-      setRoomInfo(data);
+    socket.on("room:joined", (data: RoomConfig) => {
+      setRoomConfig(data);
       setAwayJoined(true);
       setPhase("waiting");
     });
 
     socket.on("room:left", () => {
-      setRoomInfo((prev) => prev ? { ...prev } : null);
+      setRoomConfig((prev) => prev ? { ...prev } : null);
       setAwayJoined(false);
     });
 
@@ -104,12 +105,12 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     });
 
     socket.on("room:discarded", () => {
-      setRoomInfo(null);
+      setRoomConfig(null);
       setPhase("menu");
     });
 
     socket.on("room:expired", () => {
-      setRoomInfo(null);
+      setRoomConfig(null);
       setPhase("menu");
       setError("Room expired due to inactivity."); // or however you handle notifications
     });
@@ -156,8 +157,12 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     hostColor: "white" | "black" | "random";
     isStockfish: boolean;
     stockfishLevel: number | null;
+    commentaryStyle: string | null;
   }) => {
-    socket.emit("room:create", { ...data, userId: user?._id ?? null });
+    socket.emit("room:create", {
+      ...data,
+      userId: user?._id ?? null,
+    });
   }, []);
 
   const joinRoom = useCallback((roomId: string) => {
@@ -165,52 +170,52 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const leaveRoom = useCallback(() => {
-    if (!roomInfo) return;
-    socket.emit("room:leave", { roomId: roomInfo.roomId });
-    setRoomInfo(null);
+    if (!roomConfig) return;
+    socket.emit("room:leave", { roomId: roomConfig.roomId });
+    setRoomConfig(null);
     setPhase("menu");
-  }, [roomInfo]);
+  }, [roomConfig]);
 
   const discardRoom = useCallback(() => {
-    if (!roomInfo) return;
-    socket.emit("room:discard", { roomId: roomInfo.roomId });
-    setRoomInfo(null);
+    if (!roomConfig) return;
+    socket.emit("room:discard", { roomId: roomConfig.roomId });
+    setRoomConfig(null);
     setPhase("menu");
-  }, [roomInfo]);
+  }, [roomConfig]);
 
   const startGame = useCallback(() => {
-    if (!roomInfo) return;
-    socket.emit("room:start", { roomId: roomInfo.roomId });
-  }, [roomInfo]);
+    if (!roomConfig) return;
+    socket.emit("room:start", { roomId: roomConfig.roomId });
+  }, [roomConfig]);
 
   const makeMove = useCallback((move: string) => {
-    if (!roomInfo) return;
-    socket.emit("game:move", { roomId: roomInfo.roomId, move });
-  }, [roomInfo]);
+    if (!roomConfig) return;
+    socket.emit("game:move", { roomId: roomConfig.roomId, move });
+  }, [roomConfig]);
 
   const resign = useCallback(() => {
-    if (!roomInfo) return;
-    socket.emit("game:resign", { roomId: roomInfo.roomId });
-  }, [roomInfo]);
+    if (!roomConfig) return;
+    socket.emit("game:resign", { roomId: roomConfig.roomId });
+  }, [roomConfig]);
 
   const offerDraw = useCallback(() => {
-    if (!roomInfo) return;
-    socket.emit("game:draw:offer", { roomId: roomInfo.roomId });
-  }, [roomInfo]);
+    if (!roomConfig) return;
+    socket.emit("game:draw:offer", { roomId: roomConfig.roomId });
+  }, [roomConfig]);
 
   const acceptDraw = useCallback(() => {
-    if (!roomInfo) return;
-    socket.emit("game:draw:accept", { roomId: roomInfo.roomId });
-  }, [roomInfo]);
+    if (!roomConfig) return;
+    socket.emit("game:draw:accept", { roomId: roomConfig.roomId });
+  }, [roomConfig]);
 
   const declineDraw = useCallback(() => {
-    if (!roomInfo) return;
-    socket.emit("game:draw:decline", { roomId: roomInfo.roomId });
-  }, [roomInfo]);
+    if (!roomConfig) return;
+    socket.emit("game:draw:decline", { roomId: roomConfig.roomId });
+  }, [roomConfig]);
 
   const backToMenu = useCallback(() => {
     setPhase("menu");
-    setRoomInfo(null);
+    setRoomConfig(null);
     setGameState(null);
     setGameResult(null);
     setError(null);
@@ -219,7 +224,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <GameContext.Provider value={{
-      phase, roomInfo, gameState, gameResult, error, isHost, awayJoined,
+      phase, roomConfig: roomConfig, gameState, gameResult, error, isHost, awayJoined,
       createRoom, joinRoom, leaveRoom, discardRoom, startGame,
       makeMove, resign, offerDraw, acceptDraw, declineDraw, backToMenu,
     }}>
@@ -228,6 +233,12 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
+/**
+ * Provides game state and actions to manage chess games, including room creation/joining, game state updates, and game actions like making moves, resigning, and offering/accepting draws.
+ *
+ * Usage: Wrap your app with <GameProvider> and use the useGame() hook to access game state and actions in your components.
+ * @returns Game context values and actions
+ */
 export function useGame() {
   const context = useContext(GameContext);
   if (!context) throw new Error("useGame must be used within a GameProvider");
