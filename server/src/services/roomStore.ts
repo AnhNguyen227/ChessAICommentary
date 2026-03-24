@@ -16,6 +16,9 @@ export interface Room {
 
 const rooms = new Map<string, Room>();
 
+export const roomEvals = new Map<string, number>();
+
+
 export const createRoom = (roomId: string, room: Room): void => {
   rooms.set(roomId, room);
 };

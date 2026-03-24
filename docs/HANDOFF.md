@@ -83,30 +83,11 @@ CAIC/
 
 ## What's Left (In Order)
 
-### 🟡 Next Up — Room expiry
-Add 10-minute auto-expiry in `server/src/socket/index.ts` inside the `room:create` handler:
-```typescript
-setTimeout(async () => {
-  const room = getRoom(roomId);
-  if (room && room.game.status === "waiting") {
-    await Game.findOneAndDelete({ roomId });
-    deleteRoom(roomId);
-  }
-}, 10 * 60 * 1000);
-```
-
-### 🟡 Next Up — Stockfish integration
-- Install `stockfish` on the server: `npm install stockfish`
-- Create `server/src/services/stockfish.ts`
-- Stockfish runs as a child process, communicates via UCI protocol
-- After each move in `socket/index.ts`, send position to Stockfish, get eval back, emit `game:eval` to clients
-- For Stockfish games, after the player's move, get Stockfish's response move and emit it as `game:move`
-
-### 🟡 Next Up — ChatGPT commentary
-- Add `OPENAI_API_KEY` to `/server/.env`
+### 🟡 Next Up — Gemini commentary
+- Add `GEMINI_API_KEY` to `/server/.env`
 - Create `server/src/services/commentary.ts`
 - Trigger commentary on: opening moves, eval shift ≥ ±1.0, checkmate, draw offers
-- Players can set a commentary style string before the game (injected into ChatGPT system prompt)
+- Players can set a commentary style string before the game (injected into Gemini system prompt)
 - Emit `game:commentary` event to clients with the generated text
 
 ### 🟡 Next Up — Match history & analytics

@@ -7,7 +7,7 @@ import socket from "../../socket";
 function GameBoard() {
   const {
     gameState,
-    roomInfo,
+    roomConfig: roomInfo,
     isHost,
     makeMove,
     resign,
