@@ -9,6 +9,8 @@ function GameBoard() {
     gameState,
     roomConfig: roomInfo,
     isHost,
+    commentary,
+    evaluation,
     makeMove,
     resign,
     offerDraw,
@@ -84,25 +86,36 @@ function GameBoard() {
     <div>
       {error && <p>{error}</p>}
 
+      {/* Opponent Time */}
       <div>
         <p>Opponent: {isHost ? awayTime : hostTime}</p>
       </div>
 
-      <div style={{ touchAction: "none", userSelect: "none" }}>
-        <Chessboard
-          options={{
-            id: "game-board",
-            position: gameState.fen,
-            boardOrientation: boardOrientation as "white" | "black",
-            allowDragging: isMyTurn(),
-            onPieceDrop: ({ sourceSquare, targetSquare }) => {
-              if (!targetSquare) return false;
-              return onDrop(sourceSquare, targetSquare);
-            },
-          }}
-        />
+      <div style={{ display: "flex", gap: "8px" }}>
+        <div style={{ touchAction: "none", userSelect: "none" }}>
+          <Chessboard
+            options={{
+              id: "game-board",
+              position: gameState.fen,
+              boardOrientation: boardOrientation as "white" | "black",
+              allowDragging: isMyTurn(),
+              onPieceDrop: ({ sourceSquare, targetSquare }) => {
+                if (!targetSquare) return false;
+                return onDrop(sourceSquare, targetSquare);
+              },
+            }}
+          />
+        </div>
       </div>
 
+      {/* Commentary */}
+      {commentary && (
+        <div style={{ marginTop: "8px", fontStyle: "italic" }}>
+          🎙️ {commentary}
+        </div>
+      )}
+
+      {/* Your Time */}
       <div>
         <p>You: {isHost ? hostTime : awayTime}</p>
       </div>
@@ -121,6 +134,7 @@ function GameBoard() {
           </div>
         )}
       </div>
+
     </div >
   );
 }

@@ -16,7 +16,7 @@ export function initCommentary(style?: string | null): ChatSession {
     : "You are an enthusiastic and insightful chess commentator. Keep all responses to 1-2 sentences.";
 
   const model = genAI.getGenerativeModel({
-    model: "gemini-2.0-flash",
+    model: "gemini-2.5-flash",
     systemInstruction,
   });
 
