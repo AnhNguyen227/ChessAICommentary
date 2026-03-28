@@ -22,6 +22,7 @@ function GameMenu() {
   const [isStockfish, setIsStockfish] = useState(false);
   const [stockfishLevel, setStockfishLevel] = useState(5);
   const [commentaryStyle, setCommentaryStyle] = useState("");
+  const [commentaryEnabled, setCommentaryEnabled] = useState(true);
 
 
   // Join room state
@@ -34,6 +35,7 @@ function GameMenu() {
       isStockfish,
       stockfishLevel: isStockfish ? stockfishLevel : null,
       commentaryStyle: commentaryStyle.trim() || null,
+      commentaryEnabled,
     });
   };
 
@@ -126,13 +128,24 @@ function GameMenu() {
       )}
 
       <div>
-        <input
-          type="text"
-          placeholder='e.g. "Commentate like an Englishman from the 1800s"'
-          value={commentaryStyle}
-          onChange={(e) => setCommentaryStyle(e.target.value)}
-          maxLength={150}
-        />
+        <label>
+          <input
+            type="checkbox"
+            checked={commentaryEnabled}
+            onChange={(e) => setCommentaryEnabled(e.target.checked)}
+          />
+          Live Commentary
+        </label>
+
+        {commentaryEnabled && (
+          <input
+            type="text"
+            placeholder='e.g. "Commentate like an Englishman from the 1800s"'
+            value={commentaryStyle}
+            onChange={(e) => setCommentaryStyle(e.target.value)}
+            maxLength={150}
+          />
+        )}
       </div>
 
       <button onClick={handleCreate}>Create Room</button>

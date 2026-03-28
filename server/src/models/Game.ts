@@ -21,6 +21,7 @@ export interface IGame extends Document {
   isStockfish: boolean;
   stockfishLevel: number | null;
   commentaryStyle: string | null;
+  commentaryEnabled: boolean;
   createdAt: Date;
 }
 
@@ -59,6 +60,7 @@ const GameSchema = new Schema<IGame>(
     isStockfish: { type: Boolean, default: false },
     stockfishLevel: { type: Number, default: null },
     commentaryStyle: { type: String, default: null },
+    commentaryEnabled: { type: Boolean, default: true },
   },
   { timestamps: true },
 );

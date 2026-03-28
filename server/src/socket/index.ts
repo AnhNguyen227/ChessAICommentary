@@ -17,7 +17,7 @@ import { ChildProcessWithoutNullStreams } from "child_process";
 import { getCommentary, CommentaryTrigger, initCommentary } from "../services/commentary";
 import { ChatSession } from "@google/generative-ai";
 
-/** Used as the opponent, plays moves at the chosen skill level */
+/** Used as the opponent, plays at the chosen skill level */
 const sfAwayProcesses = new Map<string, ChildProcessWithoutNullStreams>();
 
 /** Used as the referee, always runs at full strength for accurate commentary triggers*/
@@ -236,6 +236,7 @@ export const initSocket = (io: Server): void => {
         stockfishLevel: number | null;
         userId: string | null;
         commentaryStyle: string | null;
+        commentaryEnabled: boolean;
       }) => {
         const timeControl = TIME_CONTROLS[data.timeControlKey];
         if (!timeControl) {
@@ -264,6 +265,7 @@ export const initSocket = (io: Server): void => {
             isStockfish: data.isStockfish,
             stockfishLevel: data.isStockfish ? data.stockfishLevel : null,
             commentaryStyle: data.commentaryStyle ?? null,
+            commentaryEnabled: data.commentaryEnabled,
           });
 
           const room: Room = {
@@ -422,8 +424,12 @@ export const initSocket = (io: Server): void => {
       });
 
       startClock(io, data.roomId);
-      const chat = initCommentary(room.game.commentaryStyle);
-      commentarySessions.set(data.roomId, chat);
+
+      // Set
+      if (room.game.commentaryEnabled) {
+        const chat = initCommentary(room.game.commentaryStyle);
+        commentarySessions.set(data.roomId, chat);
+      }
 
       // If Stockfish is white, make the first move immediately
       await stockfishFirst(io, data.roomId, chess);
@@ -483,7 +489,7 @@ export const initSocket = (io: Server): void => {
 
         // Emit eval
         io.to(data.roomId).emit("game:eval", { eval: evaluation });
-        await handleEval(io, evaluation, data.roomId, chess, data.move);
+        handleEval(io, evaluation, data.roomId, chess, data.move).catch(console.warn);
 
         const from = bestMove.slice(0, 2);
         const to = bestMove.slice(2, 4);
@@ -506,7 +512,7 @@ export const initSocket = (io: Server): void => {
         const evaluation = await getEval(sfEval, chess.fen());
 
         io.to(data.roomId).emit("game:eval", { eval: evaluation });
-        await handleEval(io, evaluation, data.roomId, chess, data.move);
+        handleEval(io, evaluation, data.roomId, chess, data.move).catch(console.warn);
       }
     });
 
@@ -608,7 +614,7 @@ async function stockfishFirst(io: Server, roomId: string, chess: Chess): Promise
   });
 
   if (result) {
-    await handleEval(io, evaluation, roomId, chess, result.san);
+    handleEval(io, evaluation, roomId, chess, result.san).catch(console.warn);
     await handleMove(io, roomId, chess, result.san, "stockfish");
   }
 }

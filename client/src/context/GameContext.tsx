@@ -52,6 +52,7 @@ interface GameContextType {
     isStockfish: boolean;
     stockfishLevel: number | null;
     commentaryStyle: string | null;
+    commentaryEnabled: boolean;
   }) => void;
   joinRoom: (roomId: string) => void;
   leaveRoom: () => void;
@@ -63,6 +64,8 @@ interface GameContextType {
   acceptDraw: () => void;
   declineDraw: () => void;
   backToMenu: () => void;
+  commentary: string | null;
+  evaluation: number | null;
 }
 
 const GameContext = createContext<GameContextType | null>(null);
@@ -75,6 +78,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [isHost, setIsHost] = useState(false);
   const [awayJoined, setAwayJoined] = useState(false);
+  const [commentary, setCommentary] = useState<string | null>(null);
+  const [evaluation, setEvaluation] = useState<number | null>(null);
 
   const { user } = useAuth();
 
@@ -129,6 +134,14 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       setGameState(data);
     });
 
+    socket.on("game:commentary", (data: { text: string }) => {
+      setCommentary(data.text);
+    });
+
+    socket.on("game:eval", (data: { eval: number }) => {
+      setEvaluation(data.eval);
+    });
+
     socket.on("game:over", (data: GameResult) => {
       setGameResult(data);
       setPhase("result");
@@ -148,6 +161,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       socket.off("game:state");
       socket.off("game:over");
       socket.off("game:error");
+      socket.off("game:commentary");
+      socket.off("game:eval");
       socket.disconnect();
     };
   }, []);
@@ -158,6 +173,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     isStockfish: boolean;
     stockfishLevel: number | null;
     commentaryStyle: string | null;
+    commentaryEnabled: boolean;
   }) => {
     socket.emit("room:create", {
       ...data,
@@ -224,7 +240,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <GameContext.Provider value={{
-      phase, roomConfig: roomConfig, gameState, gameResult, error, isHost, awayJoined,
+      commentary, evaluation, phase, roomConfig: roomConfig, gameState, gameResult, error, isHost, awayJoined,
       createRoom, joinRoom, leaveRoom, discardRoom, startGame,
       makeMove, resign, offerDraw, acceptDraw, declineDraw, backToMenu,
     }}>
