@@ -10,6 +10,8 @@ import authRoutes from "./routes/auth";
 import "./config/passport";
 import { initSocket } from "./socket/index";
 import { Server } from "socket.io";
+import gamesRouter from "./routes/games";
+
 
 dotenv.config();
 
@@ -40,6 +42,7 @@ app.use(passport.session());
 
 // Routes
 app.use("/auth", authRoutes);
+app.use("/api/games", gamesRouter);
 
 // Health check
 app.get("/", (req, res) => {

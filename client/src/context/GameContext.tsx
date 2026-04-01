@@ -81,9 +81,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const [commentary, setCommentary] = useState<string | null>(null);
   const [evaluation, setEvaluation] = useState<number | null>(null);
 
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
 
   useEffect(() => {
+    if (loading) return;
     socket.connect();
 
     socket.on("room:created", (data: RoomConfig) => {
@@ -165,7 +166,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       socket.off("game:eval");
       socket.disconnect();
     };
-  }, []);
+  }, [loading]);
 
   const createRoom = useCallback((data: {
     timeControlKey: string;
@@ -179,11 +180,11 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       ...data,
       userId: user?._id ?? null,
     });
-  }, []);
+  }, [user]);
 
   const joinRoom = useCallback((roomId: string) => {
     socket.emit("room:join", { roomId, userId: user?._id ?? null });
-  }, []);
+  }, [user]);
 
   const leaveRoom = useCallback(() => {
     if (!roomConfig) return;
