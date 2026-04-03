@@ -1,12 +1,18 @@
 import mongoose, { Document, Schema } from "mongoose";
 
+export interface Elo {
+  blitz?: number;
+  rapid?: number;
+}
+
+
 export interface IUser extends Document {
   googleId: string;
   displayName: string;
   email: string;
   avatar: string;
   chessComUsername?: string;
-  chessComElo?: number;
+  chessComElo?: Elo;
   createdAt: Date;
 }
 
@@ -17,7 +23,10 @@ const UserSchema = new Schema<IUser>(
     email: { type: String, required: true, unique: true },
     avatar: { type: String },
     chessComUsername: { type: String },
-    chessComElo: { type: Number },
+    chessComElo: {
+      blitz: { type: Number },
+      rapid: { type: Number },
+    },
   },
   { timestamps: true }
 );

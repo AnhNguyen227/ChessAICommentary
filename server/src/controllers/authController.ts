@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { IUser } from "../models/User";
+import { Elo, IUser } from "../models/User";
 import axios from "axios";
 
 export const getMe = (req: Request, res: Response): void => {
@@ -18,20 +18,25 @@ export const logout = (req: Request, res: Response): void => {
 
 export const linkChessCom = async (req: Request, res: Response): Promise<void> => {
   const { username } = req.body;
-
   if (!username) {
     res.status(400).json({ message: "Username is required" });
     return;
   }
-
   try {
-    // Verify the username exists on Chess.com
-    const response = await axios.get(`https://api.chess.com/pub/player/${username}`);
-    const chessComElo = response.data?.ratings?.rapid?.last?.rating ?? null;
+    await axios.get(`https://api.chess.com/pub/player/${username}`);
+
+    let chessComElo: Elo = {};
+    try {
+      const statsRes = await axios.get(`https://api.chess.com/pub/player/${username}/stats`);
+      chessComElo.rapid = statsRes.data?.chess_rapid?.last?.rating ?? undefined;
+      chessComElo.blitz = statsRes.data?.chess_blitz?.last?.rating ?? undefined;
+    } catch {
+      // stats optional
+    }
 
     const user = req.user as IUser;
     user.chessComUsername = username;
-    user.chessComElo = chessComElo;
+    user.chessComElo = chessComElo ?? undefined;
     await user.save();
 
     res.json({ message: "Chess.com account linked", chessComUsername: username, chessComElo });

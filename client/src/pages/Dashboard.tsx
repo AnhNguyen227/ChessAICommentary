@@ -30,6 +30,31 @@ function Dashboard() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [filter, setFilter] = useState<"all" | "win" | "loss" | "draw">("all");
   const [loading, setLoading] = useState(true);
+  const [chessComInput, setChessComInput] = useState("");
+  const [chessComStatus, setChessComStatus] = useState<string | null>(null);
+  const [linking, setLinking] = useState(false);
+
+  const handleLinkChessCom = async () => {
+    if (!chessComInput.trim()) return;
+    setLinking(true);
+    setChessComStatus(null);
+    try {
+      const res = await fetch(`${import.meta.env.VITE_SERVER_URL}/auth/chess-com`, {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: chessComInput.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message);
+      setChessComStatus(`Linked! Rapid ELO: ${data.chessComElo?.rapid ?? "unrated"}, Blitz ELO: ${data.chessComElo?.blitz ?? "unrated"}`);
+      setChessComInput("");
+    } catch (err: any) {
+      setChessComStatus(err.message ?? "Failed to link account");
+    } finally {
+      setLinking(false);
+    }
+  };
 
   useEffect(() => {
     const serverUrl = import.meta.env.VITE_SERVER_URL;
@@ -62,6 +87,30 @@ function Dashboard() {
     <div>
       <h1>Dashboard</h1>
       <p>Welcome, {user?.displayName}</p>
+
+      {/* Chess.com Linking */}
+      <div>
+        <h2>Chess.com Account</h2>
+        {user?.chessComUsername ? (
+          <p>
+            Linked: <strong>{user.chessComUsername}</strong>
+            {user?.chessComElo?.rapid && <span>Rapid: {user.chessComElo.rapid}</span>}
+            {user?.chessComElo?.blitz && <span>Blitz: {user.chessComElo.blitz}</span>}
+          </p>
+        ) : (
+          <p>No Chess.com account linked.</p>
+        )}
+        <input
+          type="text"
+          placeholder="Chess.com username"
+          value={chessComInput}
+          onChange={(e) => setChessComInput(e.target.value)}
+        />
+        <button onClick={handleLinkChessCom} disabled={linking}>
+          {linking ? "Linking..." : user?.chessComUsername ? "Update" : "Link"}
+        </button>
+        {chessComStatus && <p>{chessComStatus}</p>}
+      </div>
 
       {/* Analytics */}
       {stats && stats.total > 0 && (
