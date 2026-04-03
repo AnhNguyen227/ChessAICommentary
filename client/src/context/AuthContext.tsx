@@ -3,13 +3,18 @@ import axios from "axios";
 
 const SERVER_URL = import.meta.env.VITE_SERVER_URL;
 
+interface Elo {
+  blitz?: number;
+  rapid?: number;
+}
+
 interface User {
   _id: string;
   displayName: string;
   email: string;
   avatar: string;
   chessComUsername?: string;
-  chessComElo?: number;
+  chessComElo?: Elo;
 }
 
 interface AuthContextType {
