@@ -8,7 +8,7 @@ function Game() {
   const { phase } = useGame();
 
   return (
-    <div>
+    <div className="min-h-screen bg-background">
       {phase === "menu" && <GameMenu />}
       {phase === "waiting" && <GameLobby />}
       {phase === "active" && <GameBoard />}
