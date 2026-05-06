@@ -1,20 +1,20 @@
 # ♟️ CAIC — Chess with Live AI Commentary
 
-A real-time chess platform where players compete in unrated games against each other or Stockfish, with live position evaluation and AI-powered commentary. Built with the MERN stack, Socket.io, and the Claude API.
+A real-time chess platform where players compete in unrated games against each other or Stockfish, with live position evaluation and AI-powered commentary. Built with the MERN stack, Socket.io, and the Google Gemini API.
 
-> **Status:** 🚧 In active development
+> **Status:** In active development
 
 ---
 
 ## Features
 
 - **Play vs a Friend or Stockfish** — Create a room, share the link, and play. No account needed.
-- **Live Eval Bar** — Stockfish evaluates the position after every move in real time.
-- **AI Commentary** — Claude generates contextual commentary on significant moments (blunders, brilliant moves, checkmate, and more) in a customizable voice/style.
+- **Live Eval Bar** — Stockfish (depth 15) evaluates the position after every move in real time.
+- **AI Commentary** — Gemini 2.5 Flash generates contextual 1-2 sentence commentary on significant moments (blunders, brilliant moves, eval shifts, checkmate, and more) in a customizable voice/style.
 - **Google OAuth** — Optional sign-in to unlock match history and a persistent profile.
 - **Chess.com Integration** — Link your Chess.com account to display your ELO as a profile badge.
 - **Match History & Analytics** — Win rate by color and time control across all your games.
-- **Multiple Time Controls** — Blitz (3min, 3+2, 5min) and Rapid (10min, 15+10, 30min).
+- **Multiple Time Controls** — Blitz (3 min, 3+2, 5 min) and Rapid (10 min, 15+10, 30 min).
 
 ---
 
@@ -22,13 +22,13 @@ A real-time chess platform where players compete in unrated games against each o
 
 | Layer | Technology |
 |---|---|
-| Frontend | React, Vite, Tailwind CSS, `react-chessboard`, `chess.js` |
-| Backend | Node.js, Express |
+| Frontend | React 19, Vite, Tailwind CSS 4, `react-chessboard`, `chess.js` |
+| Backend | Node.js, Express 5 |
 | Database | MongoDB (Atlas) |
 | Real-time | Socket.io |
-| Auth | Google OAuth via Passport.js |
-| Chess Engine | Stockfish |
-| AI Commentary | Claude API (Anthropic) |
+| Auth | Google OAuth 2.0 via Passport.js |
+| Chess Engine | Stockfish (local binary, UCI protocol) |
+| AI Commentary | Google Gemini API (`gemini-2.5-flash`) |
 | Deployment | Docker, Railway, MongoDB Atlas |
 
 ---
@@ -38,8 +38,9 @@ A real-time chess platform where players compete in unrated games against each o
 ### Prerequisites
 - Node.js v18+
 - MongoDB (local or Atlas connection string)
-- Anthropic API key
+- Google Gemini API key
 - Google OAuth credentials
+- Stockfish binary (placed in `server/engines/`)
 
 ### Installation
 
@@ -62,11 +63,14 @@ Create a `.env` file in `/server`:
 ```env
 PORT=5000
 MONGO_URI=your_mongodb_connection_string
+MONGODB_USER=your_mongodb_username
+MONGODB_USER_PW=your_mongodb_password
 GOOGLE_CLIENT_ID=your_google_client_id
 GOOGLE_CLIENT_SECRET=your_google_client_secret
 SESSION_SECRET=your_session_secret
-ANTHROPIC_API_KEY=your_anthropic_api_key
 CLIENT_URL=http://localhost:5173
+STOCKFISH_PATH=./engines/stockfish.exe
+GEMINI_API_KEY=your_gemini_api_key
 ```
 
 Create a `.env` file in `/client`:
@@ -97,15 +101,21 @@ caic/
 │   ├── src/
 │   │   ├── components/     # Reusable UI components
 │   │   ├── pages/          # Route-level pages
+│   │   ├── context/        # GameContext, AuthContext
 │   │   ├── hooks/          # Custom React hooks
-│   │   └── socket/         # Socket.io client setup
+│   │   ├── socket/         # Socket.io client setup
+│   │   └── types/          # TypeScript type definitions
 │   └── ...
 ├── server/                 # Express backend
-│   ├── routes/             # REST API routes
-│   ├── controllers/        # Route handlers
-│   ├── models/             # Mongoose schemas
-│   ├── socket/             # Socket.io event handlers
-│   ├── services/           # Stockfish, Claude API integrations
+│   ├── src/
+│   │   ├── routes/         # REST API routes
+│   │   ├── controllers/    # Route handlers
+│   │   ├── models/         # Mongoose schemas (User, Game)
+│   │   ├── socket/         # Socket.io event handlers & game loop
+│   │   ├── services/       # Stockfish & Gemini API integrations
+│   │   ├── config/         # DB connection, Passport OAuth setup
+│   │   └── middleware/     # Auth middleware (requireAuth)
+│   ├── engines/            # Stockfish binary
 │   └── ...
 └── README.md
 ```
@@ -115,19 +125,32 @@ caic/
 ## How It Works
 
 ### Room Flow
-1. Host creates a room, selects time control and color preference, and shares the generated link.
+1. Host creates a room, selects a time control and color preference, and shares the generated link.
 2. Away player joins via the link. Once joined, the room is closed to others.
-3. Host starts the game. If playing vs Stockfish, a difficulty slider sets the engine depth.
+3. Host starts the game. If playing vs Stockfish, a difficulty slider sets the engine skill level (0–20).
 4. Rooms expire automatically after **10 minutes** if unfilled.
 
 ### Commentary
-AI commentary is triggered by significant game moments:
-- Opening moves
-- Eval shifts of ±1.0 pawn or more
-- Draw offers
-- Checkmate
+AI commentary is generated by Gemini 2.5 Flash and triggered by significant game moments:
 
-Players can set a **commentary style** before the game (e.g. *"Commentate like an English gentleman from the 1800s"*).
+| Trigger | Condition |
+|---|---|
+| `opening` | First few moves of the game |
+| `brilliant` | Eval swing of +3.0 pawns or more in the moving side's favor |
+| `blunder` | Eval swing of −3.0 pawns or more |
+| `eval_shift` | Eval swing of ±1.0–2.9 pawns |
+| `draw_offer` | A player offers a draw |
+| `checkmate` | Game ends in checkmate |
+
+Players can set a **commentary style** before the game (e.g. *"Commentate like an English gentleman from the 1800s"*). If no style is set, the default commentator voice is used.
+
+### Stockfish Architecture
+Two separate Stockfish processes run per room to keep AI opponent difficulty and position evaluation independent:
+
+- **Opponent process** — skill-limited (level 0–20) for move generation when playing vs Stockfish
+- **Eval process** — full-strength (depth 15) for accurate position evaluation and commentary triggers
+
+This ensures the eval bar and commentary reflect objective board truth, not the handicapped engine's assessment.
 
 ### Guest vs Registered Users
 | Feature | Guest | Registered |
@@ -143,11 +166,11 @@ Players can set a **commentary style** before the game (e.g. *"Commentate like a
 ## Roadmap
 
 - [x] Project spec & architecture
-- [ ] Project scaffolding & repo setup
-- [ ] Google OAuth & user model
-- [ ] Room creation & Socket.io game loop
-- [ ] Stockfish integration (eval bar + difficulty)
-- [ ] Claude API commentary
+- [x] Project scaffolding & repo setup
+- [x] Google OAuth & user model
+- [x] Room creation & Socket.io game loop
+- [x] Stockfish integration (eval bar + difficulty)
+- [x] Gemini AI commentary
 - [ ] Match history & analytics
 - [ ] Chess.com API linking
 - [ ] Docker + cloud deployment
