@@ -93,11 +93,15 @@ function GameLobby() {
             <div className="lg:col-span-4 bg-surface-container-high rounded-2xl p-8 border border-outline-variant/30 flex flex-col items-center relative overflow-hidden group">
               <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
               {/* Avatar */}
-              <div className="relative z-10 w-24 h-24 rounded-full bg-primary-container border-4 border-primary shadow-xl mb-6 flex items-center justify-center">
-                <span className="text-3xl font-bold text-on-primary-container font-headline">
-                  {hostDisplayName[0]?.toUpperCase() ?? "?"}
-                </span>
-              </div>
+              {user?.avatar ? (
+                <img src={user.avatar} referrerPolicy="no-referrer" alt="" className="relative z-10 w-24 h-24 rounded-full border-4 border-primary shadow-xl mb-6 object-cover" />
+              ) : (
+                <div className="relative z-10 w-24 h-24 rounded-full bg-primary-container border-4 border-primary shadow-xl mb-6 flex items-center justify-center">
+                  <span className="text-3xl font-bold text-on-primary-container font-headline">
+                    {hostDisplayName[0]?.toUpperCase() ?? "?"}
+                  </span>
+                </div>
+              )}
               <div className="text-center relative z-10">
                 <div className="flex items-center justify-center gap-2 mb-1">
                   <span className="text-xl font-bold font-headline text-on-surface">{hostDisplayName}</span>
