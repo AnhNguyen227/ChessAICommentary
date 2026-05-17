@@ -85,12 +85,12 @@ function GameMenu() {
               <span className="material-symbols-outlined text-base">dashboard</span>
               Dashboard
             </a>
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-surface-container border border-outline-variant rounded-lg">
+            <a href="/profile" className="flex items-center gap-2 px-3 py-1.5 bg-surface-container border border-outline-variant rounded-lg hover:bg-surface-container-high transition-colors">
               <div className="w-6 h-6 rounded-full bg-primary-container flex items-center justify-center text-[10px] font-bold text-on-primary-container">
                 {user.displayName?.[0] ?? "?"}
               </div>
               <span className="text-sm text-on-surface-variant font-medium">{user.displayName}</span>
-            </div>
+            </a>
           </div>
         ) : (
           <a

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 interface MatchRecord {
@@ -33,25 +34,67 @@ const resultStyles = {
 const filterKeys = ["all", "win", "loss", "draw"] as const;
 type Filter = typeof filterKeys[number];
 
-function StatCard({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
+function WinBar({ wins, draws, played }: { wins: number; draws: number; losses: number; played: number }) {
+  if (played === 0) return <div className="h-1.5 bg-surface-container-highest rounded-full" />;
+  const wPct = (wins / played) * 100;
+  const dPct = (draws / played) * 100;
   return (
-    <div className="bg-surface-container-low border border-outline-variant/50 rounded-xl p-4">
-      <p className="text-xs text-outline uppercase tracking-widest font-semibold mb-1">{label}</p>
-      <p className="text-2xl font-bold font-headline text-on-surface">{value}</p>
-      {sub && <p className="text-xs text-outline mt-0.5">{sub}</p>}
+    <div className="h-1.5 w-full bg-surface-container-highest rounded-full overflow-hidden flex">
+      <div className="h-full bg-primary transition-all duration-500" style={{ width: `${wPct}%` }} />
+      <div className="h-full bg-tertiary transition-all duration-500" style={{ width: `${dPct}%` }} />
+      <div className="h-full bg-error/60 transition-all duration-500 flex-1" />
     </div>
   );
 }
 
-function WinBar({ wins, draws, played }: { wins: number; draws: number; losses: number; played: number }) {
-  if (played === 0) return <div className="h-2 bg-surface-container-highest rounded-full" />;
-  const wPct = (wins / played) * 100;
-  const dPct = (draws / played) * 100;
+function ColorCard({
+  color,
+  data,
+}: {
+  color: "white" | "black";
+  data: { played: number; wins: number; draws: number; losses: number } | null;
+}) {
+  const isWhite = color === "white";
   return (
-    <div className="h-2 w-full bg-surface-container-highest rounded-full overflow-hidden flex">
-      <div className="h-full bg-primary transition-all" style={{ width: `${wPct}%` }} />
-      <div className="h-full bg-tertiary transition-all" style={{ width: `${dPct}%` }} />
-      <div className="h-full bg-error/60 transition-all flex-1" />
+    <div className="bg-surface-container border border-outline-variant rounded-xl p-5 flex flex-col gap-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <div
+            className={`w-8 h-8 rounded-lg shadow-sm flex-shrink-0 ${
+              isWhite ? "bg-[#bec9c2]" : "bg-[#2e4d41]"
+            }`}
+          />
+          <span className="text-sm font-bold text-on-surface">
+            Playing as {isWhite ? "White" : "Black"}
+          </span>
+        </div>
+        <span className="text-2xl font-bold font-headline text-primary">
+          {data ? winPct(data.wins, data.played) : "—"}
+        </span>
+      </div>
+
+      {data ? (
+        <>
+          <WinBar {...data} />
+          <div className="flex gap-4 text-xs">
+            <span className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-primary inline-block" />
+              <span className="text-on-surface-variant">{data.wins} <span className="font-semibold text-on-surface">W</span></span>
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-tertiary inline-block" />
+              <span className="text-on-surface-variant">{data.draws} <span className="font-semibold text-on-surface">D</span></span>
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-error/60 inline-block" />
+              <span className="text-on-surface-variant">{data.losses} <span className="font-semibold text-on-surface">L</span></span>
+            </span>
+            <span className="ml-auto text-outline">{data.played} games</span>
+          </div>
+        </>
+      ) : (
+        <p className="text-xs text-outline italic">No games yet</p>
+      )}
     </div>
   );
 }
@@ -100,6 +143,10 @@ function Dashboard() {
 
   const filtered = filter === "all" ? history : history.filter((g) => g.result === filter);
 
+  const mostPlayedTimeControl = stats
+    ? Object.entries(stats.byTimeControl).sort((a, b) => b[1].played - a[1].played)[0]
+    : null;
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -111,6 +158,8 @@ function Dashboard() {
     );
   }
 
+  if (!user) return <Navigate to="/login" replace />;
+
   return (
     <div className="min-h-screen bg-background text-on-background">
       {/* Nav */}
@@ -118,12 +167,12 @@ function Dashboard() {
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <a href="/dashboard" className="text-xl font-bold tracking-tighter text-primary font-headline">CAIC</a>
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-surface-container border border-outline-variant rounded-lg">
+            <a href="/profile" className="flex items-center gap-2 px-3 py-1.5 bg-surface-container border border-outline-variant rounded-lg hover:bg-surface-container-high transition-colors">
               <div className="w-6 h-6 rounded-full bg-primary-container flex items-center justify-center text-[10px] font-bold text-on-primary-container">
                 {user?.displayName?.[0] ?? "?"}
               </div>
               <span className="text-sm text-on-surface-variant font-medium">{user?.displayName}</span>
-            </div>
+            </a>
             <a
               href="/game"
               className="flex items-center gap-1.5 px-4 py-2 bg-primary-container text-on-primary-container text-sm font-bold rounded-lg hover:opacity-90 transition-all"
@@ -135,7 +184,7 @@ function Dashboard() {
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-6 py-8 space-y-8">
+      <main className="max-w-6xl mx-auto px-6 py-8 space-y-6">
         {/* Welcome */}
         <div>
           <h1 className="text-3xl font-bold tracking-tight font-headline text-on-surface">
@@ -144,109 +193,107 @@ function Dashboard() {
           <p className="text-sm text-outline mt-1">Your CAIC match history and stats</p>
         </div>
 
-        {/* Top row: stats + Chess.com linking */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {/* Stats grid */}
-          <div className="lg:col-span-2 grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <StatCard label="Total Games" value={stats?.total ?? 0} />
-            <StatCard
-              label="As White"
-              value={stats?.asWhite ? winPct(stats.asWhite.wins, stats.asWhite.played) : "—"}
-              sub="win rate"
-            />
-            <StatCard
-              label="As Black"
-              value={stats?.asBlack ? winPct(stats.asBlack.wins, stats.asBlack.played) : "—"}
-              sub="win rate"
-            />
-            <StatCard
-              label="Win/Draw/Loss"
-              value={stats ? `${stats.asWhite ? stats.asWhite.wins + (stats.asBlack?.wins ?? 0) : 0}` : "—"}
-              sub="total wins"
-            />
+        {/* Stat cards — asymmetric 3-col grid */}
+        <div className="grid grid-cols-3 gap-4">
+
+          {/* Total Games — tall, spans 2 rows */}
+          <div className="row-span-2 bg-surface-container border border-outline-variant rounded-xl p-6 flex flex-col justify-between">
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-outline uppercase tracking-widest font-semibold">Total Games</p>
+              <span className="material-symbols-outlined text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>
+                sports_esports
+              </span>
+            </div>
+            <div>
+              <p className="text-7xl font-bold font-headline text-on-surface leading-none">{stats?.total ?? 0}</p>
+              <p className="text-xs text-outline mt-3">games played</p>
+            </div>
           </div>
 
-          {/* Chess.com linking */}
-          <div className="bg-surface-container border border-outline-variant rounded-xl p-4 flex flex-col gap-3">
-            <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary text-base">link</span>
-              <p className="text-sm font-semibold text-on-surface">Chess.com Account</p>
+          {/* Win Rate — wide, horizontal layout */}
+          <div className="col-span-2 bg-surface-container border border-outline-variant rounded-xl p-6 flex items-center justify-between gap-6">
+            <div>
+              <p className="text-xs text-outline uppercase tracking-widest font-semibold mb-2">Overall Win Rate</p>
+              {stats && (stats.asWhite || stats.asBlack) ? (() => {
+                const totalWins = (stats.asWhite?.wins ?? 0) + (stats.asBlack?.wins ?? 0);
+                const totalDraws = (stats.asWhite?.draws ?? 0) + (stats.asBlack?.draws ?? 0);
+                const totalLosses = (stats.asWhite?.losses ?? 0) + (stats.asBlack?.losses ?? 0);
+                return (
+                  <div className="flex items-baseline gap-3">
+                    <p className="text-5xl font-bold font-headline text-on-surface leading-none">
+                      {winPct(totalWins, stats.total)}
+                    </p>
+                    <div className="flex gap-3 text-sm">
+                      <span className="text-primary font-semibold">{totalWins}W</span>
+                      <span className="text-tertiary font-semibold">{totalDraws}D</span>
+                      <span className="text-error/70 font-semibold">{totalLosses}L</span>
+                    </div>
+                  </div>
+                );
+              })() : (
+                <p className="text-5xl font-bold font-headline text-on-surface leading-none">—</p>
+              )}
+            </div>
+            <span className="material-symbols-outlined text-primary/20 text-7xl flex-shrink-0" style={{ fontVariationSettings: "'FILL' 1" }}>
+              emoji_events
+            </span>
+          </div>
+
+          {/* Favorite Time Control */}
+          <div className="bg-surface-container border border-outline-variant rounded-xl p-5 flex flex-col gap-1">
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-xs text-outline uppercase tracking-widest font-semibold">Favorite TC</p>
+              <span className="material-symbols-outlined text-primary text-base" style={{ fontVariationSettings: "'FILL' 1" }}>timer</span>
+            </div>
+            <p className="text-3xl font-bold font-headline text-on-surface leading-none">
+              {mostPlayedTimeControl ? mostPlayedTimeControl[0] : "—"}
+            </p>
+            <p className="text-xs text-outline mt-0.5">
+              {mostPlayedTimeControl ? `${mostPlayedTimeControl[1].played} games` : "no games yet"}
+            </p>
+          </div>
+
+          {/* Chess.com — with inline link form */}
+          <div className="bg-surface-container border border-outline-variant rounded-xl p-5 flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-outline uppercase tracking-widest font-semibold">Chess.com</p>
+              <span className="material-symbols-outlined text-primary text-base" style={{ fontVariationSettings: "'FILL' 1" }}>link</span>
             </div>
             {user?.chessComUsername && (
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="px-2 py-0.5 bg-primary/10 text-primary text-xs font-bold rounded-full border border-primary/20">
                   {user.chessComUsername}
                 </span>
-                {user?.chessComElo?.rapid && (
-                  <span className="text-xs text-outline">Rapid {user.chessComElo.rapid}</span>
-                )}
-                {user?.chessComElo?.blitz && (
-                  <span className="text-xs text-outline">Blitz {user.chessComElo.blitz}</span>
-                )}
+                {user.chessComElo?.rapid && <span className="text-xs text-outline">Rapid <span className="font-semibold text-on-surface">{user.chessComElo.rapid}</span></span>}
+                {user.chessComElo?.blitz && <span className="text-xs text-outline">Blitz <span className="font-semibold text-on-surface">{user.chessComElo.blitz}</span></span>}
               </div>
             )}
             <div className="flex gap-2">
               <input
                 type="text"
-                placeholder="Username..."
+                placeholder={user?.chessComUsername ? "Update username..." : "Link username..."}
                 value={chessComInput}
                 onChange={(e) => setChessComInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleLinkChessCom()}
-                className="flex-1 bg-surface-container-high border border-outline-variant rounded-lg px-3 py-2 text-xs text-on-surface placeholder-outline focus:outline-none focus:border-primary transition-colors"
+                className="flex-1 bg-surface-container-high border border-outline-variant rounded-lg px-3 py-1.5 text-xs text-on-surface placeholder-outline focus:outline-none focus:border-primary transition-colors"
               />
               <button
                 onClick={handleLinkChessCom}
                 disabled={linking || !chessComInput.trim()}
-                className="px-3 py-2 bg-primary-container text-on-primary-container text-xs font-bold rounded-lg hover:opacity-90 disabled:opacity-40 transition-all"
+                className="px-3 py-1.5 bg-primary-container text-on-primary-container text-xs font-bold rounded-lg hover:opacity-90 disabled:opacity-40 transition-all"
               >
                 {linking ? "..." : user?.chessComUsername ? "Update" : "Link"}
               </button>
             </div>
-            {chessComStatus && (
-              <p className="text-xs text-primary">{chessComStatus}</p>
-            )}
+            {chessComStatus && <p className="text-xs text-primary">{chessComStatus}</p>}
           </div>
         </div>
 
-        {/* Color win bars */}
-        {stats && (stats.asWhite || stats.asBlack) && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {stats.asWhite && (
-              <div className="bg-surface-container border border-outline-variant rounded-xl p-4 space-y-2">
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 bg-white rounded shadow-sm" />
-                    <span className="text-sm font-semibold text-on-surface">White</span>
-                  </div>
-                  <span className="text-sm font-bold text-primary">{winPct(stats.asWhite.wins, stats.asWhite.played)}</span>
-                </div>
-                <WinBar {...stats.asWhite} />
-                <div className="flex gap-3 text-xs text-outline">
-                  <span><span className="text-primary font-semibold">{stats.asWhite.wins}W</span></span>
-                  <span><span className="text-tertiary font-semibold">{stats.asWhite.draws}D</span></span>
-                  <span><span className="text-error/70 font-semibold">{stats.asWhite.losses}L</span></span>
-                </div>
-              </div>
-            )}
-            {stats.asBlack && (
-              <div className="bg-surface-container border border-outline-variant rounded-xl p-4 space-y-2">
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 bg-neutral-800 rounded border border-white/10" />
-                    <span className="text-sm font-semibold text-on-surface">Black</span>
-                  </div>
-                  <span className="text-sm font-bold text-primary">{winPct(stats.asBlack.wins, stats.asBlack.played)}</span>
-                </div>
-                <WinBar {...stats.asBlack} />
-                <div className="flex gap-3 text-xs text-outline">
-                  <span><span className="text-primary font-semibold">{stats.asBlack.wins}W</span></span>
-                  <span><span className="text-tertiary font-semibold">{stats.asBlack.draws}D</span></span>
-                  <span><span className="text-error/70 font-semibold">{stats.asBlack.losses}L</span></span>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+        {/* Color performance cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <ColorCard color="white" data={stats?.asWhite ?? null} />
+          <ColorCard color="black" data={stats?.asBlack ?? null} />
+        </div>
 
         {/* By time control */}
         {stats && Object.keys(stats.byTimeControl).length > 0 && (
@@ -277,10 +324,11 @@ function Dashboard() {
                 <button
                   key={f}
                   onClick={() => setFilter(f)}
-                  className={`px-3 py-1 rounded-lg text-xs font-semibold capitalize transition-all ${filter === f
+                  className={`px-3 py-1 rounded-lg text-xs font-semibold capitalize transition-all ${
+                    filter === f
                       ? "bg-primary-container text-on-primary-container"
                       : "text-outline hover:text-on-surface hover:bg-surface-container-high"
-                    }`}
+                  }`}
                 >
                   {f}
                 </button>

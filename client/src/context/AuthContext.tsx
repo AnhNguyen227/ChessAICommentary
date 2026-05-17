@@ -15,6 +15,7 @@ interface User {
   avatar: string;
   chessComUsername?: string;
   chessComElo?: Elo;
+  createdAt: string;
 }
 
 interface AuthContextType {
