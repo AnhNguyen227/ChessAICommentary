@@ -75,13 +75,22 @@ function GameMenu() {
   const Nav = () => (
     <header className="sticky top-0 z-50 bg-neutral-950/80 backdrop-blur-md border-b border-neutral-800">
       <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-        <a href="/" className="text-2xl font-bold tracking-tighter text-primary font-headline">CAIC</a>
+        <a href={user ? "/dashboard" : "/login"} className="text-2xl font-bold tracking-tighter text-primary font-headline">CAIC</a>
         {user ? (
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-surface-container border border-outline-variant rounded-lg">
-            <div className="w-6 h-6 rounded-full bg-primary-container flex items-center justify-center text-[10px] font-bold text-on-primary-container">
-              {user.displayName?.[0] ?? "?"}
+          <div className="flex items-center gap-3">
+            <a
+              href="/dashboard"
+              className="flex items-center gap-1.5 px-4 py-2 text-on-surface-variant text-sm font-semibold rounded-lg hover:bg-surface-container hover:text-on-surface transition-all"
+            >
+              <span className="material-symbols-outlined text-base">dashboard</span>
+              Dashboard
+            </a>
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-surface-container border border-outline-variant rounded-lg">
+              <div className="w-6 h-6 rounded-full bg-primary-container flex items-center justify-center text-[10px] font-bold text-on-primary-container">
+                {user.displayName?.[0] ?? "?"}
+              </div>
+              <span className="text-sm text-on-surface-variant font-medium">{user.displayName}</span>
             </div>
-            <span className="text-sm text-on-surface-variant font-medium">{user.displayName}</span>
           </div>
         ) : (
           <a

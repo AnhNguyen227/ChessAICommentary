@@ -43,7 +43,7 @@ function StatCard({ label, value, sub }: { label: string; value: string | number
   );
 }
 
-function WinBar({ wins, draws, losses, played }: { wins: number; draws: number; losses: number; played: number }) {
+function WinBar({ wins, draws, played }: { wins: number; draws: number; losses: number; played: number }) {
   if (played === 0) return <div className="h-2 bg-surface-container-highest rounded-full" />;
   const wPct = (wins / played) * 100;
   const dPct = (draws / played) * 100;
@@ -116,7 +116,7 @@ function Dashboard() {
       {/* Nav */}
       <header className="sticky top-0 z-50 bg-neutral-950/80 backdrop-blur-md border-b border-neutral-800">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <span className="text-xl font-bold tracking-tighter text-primary font-headline">CAIC</span>
+          <a href="/dashboard" className="text-xl font-bold tracking-tighter text-primary font-headline">CAIC</a>
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 px-3 py-1.5 bg-surface-container border border-outline-variant rounded-lg">
               <div className="w-6 h-6 rounded-full bg-primary-container flex items-center justify-center text-[10px] font-bold text-on-primary-container">

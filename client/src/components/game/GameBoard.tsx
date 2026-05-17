@@ -23,8 +23,19 @@ function EvalBar({ evaluation, orientation }: { evaluation: number | null; orien
         {(!flipped && evaluation !== null && evaluation < 0) || (flipped && evaluation !== null && evaluation > 0) ? evalLabel() : " "}
       </span>
       <div className="flex-1 w-full rounded-md overflow-hidden flex flex-col border border-outline-variant/30 min-h-0">
-        <div className="w-full bg-surface-container-highest transition-all duration-700" style={{ height: flipped ? `${whitePct}%` : `${blackPct}%` }} />
-        <div className="w-full bg-on-surface transition-all duration-700 flex-1" />
+        {flipped ? (
+          // Playing as black: white fills from top, black fills from bottom
+          <>
+            <div className="w-full bg-on-surface transition-all duration-700" style={{ height: `${whitePct}%` }} />
+            <div className="w-full bg-surface-container-highest transition-all duration-700 flex-1" />
+          </>
+        ) : (
+          // Playing as white: black fills from top, white fills from bottom
+          <>
+            <div className="w-full bg-surface-container-highest transition-all duration-700" style={{ height: `${blackPct}%` }} />
+            <div className="w-full bg-on-surface transition-all duration-700 flex-1" />
+          </>
+        )}
       </div>
       <span className="text-[9px] font-bold text-outline tabular-nums leading-none">
         {(!flipped && evaluation !== null && evaluation > 0) || (flipped && evaluation !== null && evaluation < 0) ? evalLabel() : " "}
