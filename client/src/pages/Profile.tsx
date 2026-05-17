@@ -85,6 +85,7 @@ function Profile() {
             <img
               src={user.avatar}
               alt={user.displayName}
+              referrerPolicy="no-referrer"
               className="w-16 h-16 rounded-full border-2 border-outline-variant flex-shrink-0"
             />
           ) : (

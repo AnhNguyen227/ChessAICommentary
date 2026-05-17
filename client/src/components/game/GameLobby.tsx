@@ -28,14 +28,18 @@ function GameLobby() {
       {/* Nav */}
       <header className="sticky top-0 z-50 bg-neutral-950/80 backdrop-blur-md border-b border-neutral-800">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <a href="/" className="text-2xl font-bold tracking-tighter text-primary font-headline">CAIC</a>
+          <a href={user ? "/dashboard" : "/login"} className="text-2xl font-bold tracking-tighter text-primary font-headline">CAIC</a>
           {user ? (
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-surface-container border border-outline-variant rounded-lg">
-              <div className="w-6 h-6 rounded-full bg-primary-container flex items-center justify-center text-[10px] font-bold text-on-primary-container">
-                {user.displayName?.[0] ?? "?"}
-              </div>
+            <a href="/profile" className="flex items-center gap-2 px-3 py-1.5 bg-surface-container border border-outline-variant rounded-lg hover:bg-surface-container-high transition-colors">
+              {user.avatar ? (
+                <img src={user.avatar} referrerPolicy="no-referrer" alt="" className="w-6 h-6 rounded-full" />
+              ) : (
+                <div className="w-6 h-6 rounded-full bg-primary-container flex items-center justify-center text-[10px] font-bold text-on-primary-container">
+                  {user.displayName?.[0] ?? "?"}
+                </div>
+              )}
               <span className="text-sm text-on-surface-variant font-medium">{user.displayName}</span>
-            </div>
+            </a>
           ) : (
             <a
               href={`${SERVER_URL}/auth/google`}

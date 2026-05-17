@@ -86,9 +86,13 @@ function GameMenu() {
               Dashboard
             </a>
             <a href="/profile" className="flex items-center gap-2 px-3 py-1.5 bg-surface-container border border-outline-variant rounded-lg hover:bg-surface-container-high transition-colors">
-              <div className="w-6 h-6 rounded-full bg-primary-container flex items-center justify-center text-[10px] font-bold text-on-primary-container">
-                {user.displayName?.[0] ?? "?"}
-              </div>
+              {user.avatar ? (
+                <img src={user.avatar} referrerPolicy="no-referrer" alt="" className="w-6 h-6 rounded-full" />
+              ) : (
+                <div className="w-6 h-6 rounded-full bg-primary-container flex items-center justify-center text-[10px] font-bold text-on-primary-container">
+                  {user.displayName?.[0] ?? "?"}
+                </div>
+              )}
               <span className="text-sm text-on-surface-variant font-medium">{user.displayName}</span>
             </a>
           </div>
