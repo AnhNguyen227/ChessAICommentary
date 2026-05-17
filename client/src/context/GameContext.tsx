@@ -28,12 +28,19 @@ interface GameResult {
   pgn: string;
 }
 
+interface Elo {
+  blitz?: number;
+  rapid?: number;
+}
+
 interface RoomConfig {
   roomId: string;
   hostColor: "white" | "black";
   timeControl: TimeControl;
   isStockfish: boolean;
   stockfishLevel: number | null;
+  hostElo?: Elo | null;
+  awayElo?: Elo | null;
 }
 
 type GamePhase = "menu" | "waiting" | "active" | "result";

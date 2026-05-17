@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Chessboard } from "react-chessboard";
 import { Chess } from "chess.js";
 import { useGame } from "../../context/GameContext";
+import { useAuth } from "../../context/AuthContext";
 import socket from "../../socket";
 
 function EvalBar({ evaluation, orientation }: { evaluation: number | null; orientation: "white" | "black" }) {
@@ -44,8 +45,8 @@ function EvalBar({ evaluation, orientation }: { evaluation: number | null; orien
   );
 }
 
-function PlayerCard({ time, active, label, isBot }: {
-  time: string; active: boolean; label: string; isBot?: boolean;
+function PlayerCard({ time, active, label, isBot, elo }: {
+  time: string; active: boolean; label: string; isBot?: boolean; elo?: number;
 }) {
   return (
     <div className={`flex items-center justify-between px-3 py-2 rounded-lg border transition-all flex-shrink-0 ${
@@ -67,6 +68,9 @@ function PlayerCard({ time, active, label, isBot }: {
           <span className="text-[9px] bg-surface-container-highest text-outline px-1.5 py-0.5 rounded uppercase tracking-widest">
             Bot
           </span>
+        )}
+        {elo && (
+          <span className="text-[9px] text-outline tabular-nums">{elo}</span>
         )}
       </div>
       <span className={`font-mono font-bold tabular-nums text-base ${active ? "text-on-surface" : "text-on-surface-variant"}`}>
@@ -92,6 +96,8 @@ function GameBoard() {
     declineDraw,
     error,
   } = useGame();
+
+  const { user } = useAuth();
 
   const [drawOffered, setDrawOffered] = useState(false);
   const [drawOfferedBy, setDrawOfferedBy] = useState<"host" | "away" | null>(null);
@@ -160,6 +166,11 @@ function GameBoard() {
     ? `Stockfish${roomInfo.stockfishLevel ? ` Lv.${roomInfo.stockfishLevel}` : ""}`
     : "Opponent";
 
+  const isBlitz = roomInfo.timeControl.minutes <= 5;
+  const myElo = isBlitz ? user?.chessComElo?.blitz : user?.chessComElo?.rapid;
+  const oppEloSource = isHost ? roomInfo.awayElo : roomInfo.hostElo;
+  const oppElo = isBlitz ? oppEloSource?.blitz : oppEloSource?.rapid;
+
   return (
     <div className="h-screen bg-background flex flex-col overflow-hidden">
       <main className="flex-1 flex items-stretch justify-center gap-6 p-6 min-h-0">
@@ -167,7 +178,7 @@ function GameBoard() {
         {/* ── Board column ── */}
         <div className="flex flex-col gap-2 flex-shrink-0 min-h-0">
 
-          <PlayerCard time={oppTime} active={isOppTurn} label={oppLabel} isBot={roomInfo.isStockfish} />
+          <PlayerCard time={oppTime} active={isOppTurn} label={oppLabel} isBot={roomInfo.isStockfish} elo={oppElo} />
 
           {/* Eval bar + board — sized by explicit min(height, width) so both stay in sync */}
           <div className="flex-1 flex items-center min-h-0">
@@ -198,7 +209,7 @@ function GameBoard() {
             </div>
           </div>
 
-          <PlayerCard time={myTime} active={isMyTurn} label="You" />
+          <PlayerCard time={myTime} active={isMyTurn} label="You" elo={myElo} />
 
           {error && (
             <div className="px-3 py-1.5 bg-error/10 border border-error/30 rounded-lg text-error text-xs flex-shrink-0">

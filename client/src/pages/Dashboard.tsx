@@ -60,9 +60,8 @@ function ColorCard({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <div
-            className={`w-8 h-8 rounded-lg shadow-sm flex-shrink-0 ${
-              isWhite ? "bg-[#bec9c2]" : "bg-[#2e4d41]"
-            }`}
+            className={`w-8 h-8 rounded-lg shadow-sm flex-shrink-0 ${isWhite ? "bg-[#bec9c2]" : "bg-[#2e4d41]"
+              }`}
           />
           <span className="text-sm font-bold text-on-surface">
             Playing as {isWhite ? "White" : "Black"}
@@ -194,7 +193,6 @@ function Dashboard() {
           <h1 className="text-3xl font-bold tracking-tight font-headline text-on-surface">
             Welcome back, {user?.displayName?.split(" ")[0]}
           </h1>
-          <p className="text-sm text-outline mt-1">Your CAIC match history and stats</p>
         </div>
 
         {/* Stat cards — asymmetric 3-col grid */}
@@ -328,11 +326,10 @@ function Dashboard() {
                 <button
                   key={f}
                   onClick={() => setFilter(f)}
-                  className={`px-3 py-1 rounded-lg text-xs font-semibold capitalize transition-all ${
-                    filter === f
-                      ? "bg-primary-container text-on-primary-container"
-                      : "text-outline hover:text-on-surface hover:bg-surface-container-high"
-                  }`}
+                  className={`px-3 py-1 rounded-lg text-xs font-semibold capitalize transition-all ${filter === f
+                    ? "bg-primary-container text-on-primary-container"
+                    : "text-outline hover:text-on-surface hover:bg-surface-container-high"
+                    }`}
                 >
                   {f}
                 </button>

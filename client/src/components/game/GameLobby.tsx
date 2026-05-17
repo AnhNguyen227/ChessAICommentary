@@ -14,6 +14,11 @@ function GameLobby() {
   const playerColor = isHost ? roomInfo.hostColor : roomInfo.hostColor === "white" ? "black" : "white";
   const hostDisplayName = user?.displayName ?? "You";
   const timeLabel = `${roomInfo.timeControl.minutes}${roomInfo.timeControl.increment > 0 ? ` | ${roomInfo.timeControl.increment}` : ""} ${roomInfo.timeControl.minutes >= 15 ? "Rapid" : "Blitz"}`;
+  const isBlitz = roomInfo.timeControl.minutes <= 5;
+  const myElo = isBlitz ? user?.chessComElo?.blitz : user?.chessComElo?.rapid;
+  const oppEloSource = isHost ? roomInfo.awayElo : roomInfo.hostElo;
+  const oppElo = isBlitz ? oppEloSource?.blitz : oppEloSource?.rapid;
+  const eloLabel = isBlitz ? "Blitz" : "Rapid";
 
   const [copied, setCopied] = useState(false);
   const copyRoomId = () => {
@@ -109,6 +114,9 @@ function GameLobby() {
                 <p className="text-on-surface-variant text-sm font-medium capitalize">
                   Playing {playerColor === "white" || playerColor === "black" ? playerColor : "random color"}
                 </p>
+                {myElo && (
+                  <p className="text-outline text-xs mt-1">{eloLabel} {myElo}</p>
+                )}
                 <span className="inline-block mt-4 px-3 py-1 bg-primary/20 text-primary text-xs font-bold rounded-full uppercase tracking-wider">
                   {isHost ? "Host" : "Guest"}
                 </span>
@@ -185,6 +193,9 @@ function GameLobby() {
                       <div className="w-2 h-2 rounded-full bg-primary" />
                       <span className="text-xl font-bold font-headline text-on-surface">Opponent</span>
                     </div>
+                    {oppElo && (
+                      <p className="text-outline text-xs mt-1">{eloLabel} {oppElo}</p>
+                    )}
                     <p className="text-primary text-sm mt-1 font-medium">Connected — ready!</p>
                     <span className="inline-block mt-4 px-3 py-1 bg-primary/20 text-primary text-xs font-bold rounded-full uppercase tracking-wider">
                       Guest

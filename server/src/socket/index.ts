@@ -2,6 +2,7 @@ import { Server, Socket } from "socket.io";
 import { Chess } from "chess.js";
 import { nanoid } from "nanoid";
 import Game from "../models/Game";
+import User from "../models/User";
 import mongoose from "mongoose";
 import {
   createRoom,
@@ -340,11 +341,19 @@ export const initSocket = (io: Server): void => {
         roomTimers.delete(data.roomId);
       }
 
+      const [hostUser, awayUser] = await Promise.all([
+        room.game.host ? User.findById(room.game.host) : null,
+        data.userId ? User.findById(data.userId) : null,
+      ]);
+
       io.to(data.roomId).emit("room:joined", {
         roomId: data.roomId,
         hostColor: room.game.hostColor,
         timeControl: room.game.timeControl,
         isStockfish: room.game.isStockfish,
+        stockfishLevel: room.game.stockfishLevel ?? null,
+        hostElo: hostUser?.chessComElo ?? null,
+        awayElo: awayUser?.chessComElo ?? null,
       });
     });
 
