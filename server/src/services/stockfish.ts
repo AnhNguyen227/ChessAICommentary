@@ -27,12 +27,15 @@ export function createStockfishProcess(): Promise<ChildProcessWithoutNullStreams
   });
 }
 
-// Returns eval only (for human vs human games)
+// Returns eval from white's perspective (positive = white winning, negative = black winning)
 export function getEval(
   process: ChildProcessWithoutNullStreams,
   fen: string,
   depth: number = 15
 ): Promise<number> {
+  // Stockfish scores from the side-to-move's perspective; track whose turn it is so we can normalize
+  const sideToMove = fen.split(" ")[1]; // "w" or "b"
+
   return new Promise((resolve) => {
     process.stdin.write(`position fen ${fen}\n`);
     process.stdin.write(`go depth ${depth}\n`);
@@ -43,10 +46,10 @@ export function getEval(
       for (const line of lines) {
         if (resolved) break;
         if (line.startsWith("bestmove")) {
-          // Grab last eval we saw before bestmove
           process.stdout.off("data", handler);
           resolved = true;
-          resolve(lastEval);
+          // Negate when it's black to move so the result is always from white's perspective
+          resolve(sideToMove === "b" ? -lastEval : lastEval);
         } else if (line.includes("score cp")) {
           const match = line.match(/score cp (-?\d+)/);
           if (match) lastEval = parseInt(match[1]) / 100;

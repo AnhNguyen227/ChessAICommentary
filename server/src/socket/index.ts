@@ -601,7 +601,7 @@ async function stockfishFirst(io: Server, roomId: string, chess: Chess): Promise
   const evalSf = sfEvalProcesses.get(roomId);
   if (!awaySf || !evalSf) return;
 
-  const skillLevel = (room.game.stockfishLevel ?? 11) - 1;
+  const skillLevel = room.game.stockfishLevel ?? 10;
   const { bestMove } = await getBestMoveAndEval(awaySf, chess.fen(), skillLevel);
   const evaluation = await getEval(evalSf, chess.fen());
 

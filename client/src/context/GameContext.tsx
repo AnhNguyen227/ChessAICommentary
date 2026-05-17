@@ -53,6 +53,7 @@ interface GameContextType {
     stockfishLevel: number | null;
     commentaryStyle: string | null;
     commentaryEnabled: boolean;
+    evalEnabled: boolean;
   }) => void;
   joinRoom: (roomId: string) => void;
   leaveRoom: () => void;
@@ -64,7 +65,10 @@ interface GameContextType {
   acceptDraw: () => void;
   declineDraw: () => void;
   backToMenu: () => void;
+  clearError: () => void;
   commentary: string | null;
+  commentaryEnabled: boolean;
+  evalEnabled: boolean;
   evaluation: number | null;
 }
 
@@ -79,6 +83,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const [isHost, setIsHost] = useState(false);
   const [awayJoined, setAwayJoined] = useState(false);
   const [commentary, setCommentary] = useState<string | null>(null);
+  const [commentaryEnabled, setCommentaryEnabled] = useState(true);
+  const [evalEnabled, setEvalEnabled] = useState(true);
   const [evaluation, setEvaluation] = useState<number | null>(null);
 
   const { user, loading } = useAuth();
@@ -175,7 +181,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     stockfishLevel: number | null;
     commentaryStyle: string | null;
     commentaryEnabled: boolean;
+    evalEnabled: boolean;
   }) => {
+    setCommentaryEnabled(data.commentaryEnabled);
+    setEvalEnabled(data.evalEnabled);
     socket.emit("room:create", {
       ...data,
       userId: user?._id ?? null,
@@ -237,13 +246,17 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     setGameResult(null);
     setError(null);
     setIsHost(false);
+    setCommentaryEnabled(true);
+    setEvalEnabled(true);
   }, []);
+
+  const clearError = useCallback(() => setError(null), []);
 
   return (
     <GameContext.Provider value={{
-      commentary, evaluation, phase, roomConfig: roomConfig, gameState, gameResult, error, isHost, awayJoined,
+      commentary, commentaryEnabled, evalEnabled, evaluation, phase, roomConfig: roomConfig, gameState, gameResult, error, isHost, awayJoined,
       createRoom, joinRoom, leaveRoom, discardRoom, startGame,
-      makeMove, resign, offerDraw, acceptDraw, declineDraw, backToMenu,
+      makeMove, resign, offerDraw, acceptDraw, declineDraw, backToMenu, clearError,
     }}>
       {children}
     </GameContext.Provider>
