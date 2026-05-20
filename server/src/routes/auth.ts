@@ -20,7 +20,7 @@ router.get(
   "/google/callback",
   passport.authenticate("google", { failureRedirect: "/" }),
   (req, res) => {
-    console.log("OAuth success, user:", (req.user as any)?._id, "session:", req.session.id);
+    console.log("OAuth success, user:", (req.user as any)?._id, "session:", req.session.id, "req.secure:", req.secure);
     req.session.save((err) => {
       if (err) console.error("Session save error:", err);
       res.redirect(`${process.env.CLIENT_URL}/dashboard`);

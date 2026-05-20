@@ -30,17 +30,21 @@ app.use(cors({
   methods: ["GET", "POST", "PUT", "DELETE"],
 }));
 app.use(express.json());
+const isProd = !!process.env.SERVER_URL;
 app.use(session({
   secret: process.env.SESSION_SECRET as string,
   resave: false,
   saveUninitialized: false,
+  proxy: isProd,
   store: MongoStore.create({ mongoUrl: process.env.MONGO_URI as string }),
   cookie: {
     maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
-    secure: !!process.env.SERVER_URL,
-    sameSite: process.env.SERVER_URL ? "none" : "lax",
+    secure: isProd,
+    sameSite: isProd ? "none" : "lax",
+    httpOnly: true,
   },
 }));
+console.log("Session cookie mode:", isProd ? "secure/SameSite=None (prod)" : "lax (dev)");
 app.use(passport.initialize());
 app.use(passport.session());
 
