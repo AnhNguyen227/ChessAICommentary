@@ -63,8 +63,6 @@ Create a `.env` file in `/server`:
 ```env
 PORT=5000
 MONGO_URI=your_mongodb_connection_string
-MONGODB_USER=your_mongodb_username
-MONGODB_USER_PW=your_mongodb_password
 GOOGLE_CLIENT_ID=your_google_client_id
 GOOGLE_CLIENT_SECRET=your_google_client_secret
 SESSION_SECRET=your_session_secret
