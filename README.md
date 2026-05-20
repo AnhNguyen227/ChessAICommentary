@@ -1,19 +1,17 @@
-# ♟️ CAIC — Chess with Live AI Commentary
+# CAIC — Chess with Live AI Commentary
 
-A real-time chess platform where players compete in unrated games against each other or Stockfish, with live position evaluation and AI-powered commentary. Built with the MERN stack, Socket.io, and the Google Gemini API.
-
-> **Status:** In active development
+A real-time chess platform where players compete in unrated games against each other or Stockfish, with live position evaluation and AI-powered commentary. Built with the MERN stack, Socket.IO, and the Google Gemini API.
 
 ---
 
 ## Features
 
-- **Play vs a Friend or Stockfish** — Create a room, share the link, and play. No account needed.
+- **Play vs a Friend or Stockfish** — Create a room, share the Match ID, and play. No account needed.
 - **Live Eval Bar** — Stockfish (depth 15) evaluates the position after every move in real time.
-- **AI Commentary** — Gemini 2.5 Flash generates contextual 1-2 sentence commentary on significant moments (blunders, brilliant moves, eval shifts, checkmate, and more) in a customizable voice/style.
+- **AI Commentary** — Gemini 2.5 Flash generates contextual 1–2 sentence commentary on significant moments (openings, blunders, brilliant moves, eval shifts, checkmate) in a customizable voice/style.
 - **Google OAuth** — Optional sign-in to unlock match history and a persistent profile.
-- **Chess.com Integration** — Link your Chess.com account to display your ELO as a profile badge.
-- **Match History & Analytics** — Win rate by color and time control across all your games.
+- **Chess.com Integration** — Link your Chess.com account to display your ELO in the lobby and on your profile.
+- **Match History & Analytics** — Win rate, draw rate, and game count across all your games.
 - **Multiple Time Controls** — Blitz (3 min, 3+2, 5 min) and Rapid (10 min, 15+10, 30 min).
 
 ---
@@ -23,13 +21,13 @@ A real-time chess platform where players compete in unrated games against each o
 | Layer | Technology |
 |---|---|
 | Frontend | React 19, Vite, Tailwind CSS 4, `react-chessboard`, `chess.js` |
-| Backend | Node.js, Express 5 |
-| Database | MongoDB (Atlas) |
-| Real-time | Socket.io |
+| Backend | Node.js, Express 5, TypeScript |
+| Database | MongoDB Atlas |
+| Real-time | Socket.IO |
 | Auth | Google OAuth 2.0 via Passport.js |
-| Chess Engine | Stockfish (local binary, UCI protocol) |
+| Chess Engine | Stockfish 16.1 (UCI protocol, two processes per room) |
 | AI Commentary | Google Gemini API (`gemini-2.5-flash`) |
-| Deployment | Docker, Railway, MongoDB Atlas |
+| Deployment | Render (backend), Vercel (frontend) |
 
 ---
 
@@ -38,41 +36,37 @@ A real-time chess platform where players compete in unrated games against each o
 ### Prerequisites
 - Node.js v18+
 - MongoDB (local or Atlas connection string)
-- Google Gemini API key
-- Google OAuth credentials
-- Stockfish binary (placed in `server/engines/`)
+- Google Gemini API key ([aistudio.google.com/apikey](https://aistudio.google.com/apikey))
+- Google OAuth credentials ([console.cloud.google.com](https://console.cloud.google.com))
+- Stockfish binary placed in `server/engines/`
+  - Windows: download `stockfish.exe` from [stockfishchess.org](https://stockfishchess.org/download/)
+  - Linux/Mac: download the appropriate binary and name it `stockfish`
 
 ### Installation
 
 ```bash
-# Clone the repo
-git clone https://github.com/your-username/caic.git
-cd caic
+git clone https://github.com/AnhNguyen227/ChessAICommentary.git
+cd ChessAICommentary
 
-# Install server dependencies
 cd server && npm install
-
-# Install client dependencies
 cd ../client && npm install
 ```
 
 ### Environment Variables
 
-Create a `.env` file in `/server`:
-
+`server/.env`:
 ```env
 PORT=5000
 MONGO_URI=your_mongodb_connection_string
 GOOGLE_CLIENT_ID=your_google_client_id
 GOOGLE_CLIENT_SECRET=your_google_client_secret
-SESSION_SECRET=your_session_secret
+SESSION_SECRET=any_long_random_string
 CLIENT_URL=http://localhost:5173
 STOCKFISH_PATH=./engines/stockfish.exe
 GEMINI_API_KEY=your_gemini_api_key
 ```
 
-Create a `.env` file in `/client`:
-
+`client/.env`:
 ```env
 VITE_SERVER_URL=http://localhost:5000
 ```
@@ -80,41 +74,37 @@ VITE_SERVER_URL=http://localhost:5000
 ### Running Locally
 
 ```bash
-# Start the server (from /server)
+# From /server
 npm run dev
 
-# Start the client (from /client)
+# From /client
 npm run dev
 ```
 
-Client runs on `http://localhost:5173`, server on `http://localhost:5000`.
+Client: `http://localhost:5173` · Server: `http://localhost:5000`
 
 ---
 
 ## Project Structure
 
 ```
-caic/
+ChessAICommentary/
 ├── client/                 # React frontend (Vite)
-│   ├── src/
-│   │   ├── components/     # Reusable UI components
-│   │   ├── pages/          # Route-level pages
-│   │   ├── context/        # GameContext, AuthContext
-│   │   ├── hooks/          # Custom React hooks
-│   │   ├── socket/         # Socket.io client setup
-│   │   └── types/          # TypeScript type definitions
-│   └── ...
+│   └── src/
+│       ├── components/     # Game UI (GameMenu, GameLobby, GameBoard, GameResult)
+│       ├── pages/          # Route-level pages (Login, Dashboard, Profile)
+│       ├── context/        # GameContext, AuthContext
+│       └── socket/         # Socket.IO client setup
 ├── server/                 # Express backend
 │   ├── src/
-│   │   ├── routes/         # REST API routes
+│   │   ├── routes/         # REST API routes (auth, chess-com)
 │   │   ├── controllers/    # Route handlers
 │   │   ├── models/         # Mongoose schemas (User, Game)
-│   │   ├── socket/         # Socket.io event handlers & game loop
-│   │   ├── services/       # Stockfish & Gemini API integrations
+│   │   ├── socket/         # Socket.IO event handlers & game loop
+│   │   ├── services/       # Stockfish & Gemini integrations, room store
 │   │   ├── config/         # DB connection, Passport OAuth setup
-│   │   └── middleware/     # Auth middleware (requireAuth)
-│   ├── engines/            # Stockfish binary
-│   └── ...
+│   │   └── middleware/     # requireAuth
+│   └── engines/            # Stockfish binary (gitignored)
 └── README.md
 ```
 
@@ -123,27 +113,26 @@ caic/
 ## How It Works
 
 ### Room Flow
-1. Host creates a room, selects a time control and color preference, and shares the generated link.
-2. Away player joins via the link. Once joined, the room is closed to others.
-3. Host starts the game. If playing vs Stockfish, a difficulty slider sets the engine skill level (0–20).
+1. Host creates a room, selects time control, color, and AI settings.
+2. Away player joins via the Match ID. Once joined, the room is closed to others.
+3. Host starts the game from the lobby.
 4. Rooms expire automatically after **10 minutes** if unfilled.
 
 ### Commentary
-AI commentary is generated by Gemini 2.5 Flash and triggered by significant game moments:
+Gemini 2.5 Flash is triggered by significant moments after each move:
 
 | Trigger | Condition |
 |---|---|
-| `opening` | First few moves of the game |
-| `brilliant` | Eval swing of +3.0 pawns or more in the moving side's favor |
-| `blunder` | Eval swing of −3.0 pawns or more |
-| `eval_shift` | Eval swing of ±1.0–2.9 pawns |
-| `draw_offer` | A player offers a draw |
+| `opening` | First 6 moves of the game |
+| `brilliant` | Eval swing ≥ +2.0 pawns |
+| `blunder` | Eval swing ≥ −2.0 pawns |
+| `eval_shift` | Eval swing ≥ ±0.5 pawns |
 | `checkmate` | Game ends in checkmate |
 
-Players can set a **commentary style** before the game (e.g. *"Commentate like an English gentleman from the 1800s"*). If no style is set, the default commentator voice is used.
+Players can set a **commentary style** before the game (e.g. *"Commentate like an English gentleman from the 1800s"*).
 
 ### Stockfish Architecture
-Two separate Stockfish processes run per room to keep AI opponent difficulty and position evaluation independent:
+Two separate Stockfish processes run per room:
 
 - **Opponent process** — skill-limited (level 0–20) for move generation when playing vs Stockfish
 - **Eval process** — full-strength (depth 15) for accurate position evaluation and commentary triggers
@@ -151,27 +140,26 @@ Two separate Stockfish processes run per room to keep AI opponent difficulty and
 This ensures the eval bar and commentary reflect objective board truth, not the handicapped engine's assessment.
 
 ### Guest vs Registered Users
+
 | Feature | Guest | Registered |
 |---|---|---|
 | Create / Join rooms | ✅ | ✅ |
 | Play vs Stockfish | ✅ | ✅ |
 | Match history | ❌ | ✅ |
 | Analytics dashboard | ❌ | ✅ |
-| Chess.com ELO badge | ❌ | ✅ |
+| Chess.com ELO display | ❌ | ✅ |
 
 ---
 
-## Roadmap
+## Deployment
 
-- [x] Project spec & architecture
-- [x] Project scaffolding & repo setup
-- [x] Google OAuth & user model
-- [x] Room creation & Socket.io game loop
-- [x] Stockfish integration (eval bar + difficulty)
-- [x] Gemini AI commentary
-- [ ] Match history & analytics
-- [ ] Chess.com API linking
-- [ ] Docker + cloud deployment
+The app is deployed with a split architecture:
+
+- **Backend** — [Render](https://render.com) (free tier, Node web service)
+  - Build: `npm install && npm run build` (downloads Stockfish Linux binary automatically)
+  - Start: `npm start`
+- **Frontend** — [Vercel](https://vercel.com) (free tier)
+  - Root directory: `client`, auto-detected as Vite
 
 ---
 
