@@ -133,8 +133,8 @@ function Dashboard() {
   useEffect(() => {
     const serverUrl = import.meta.env.VITE_SERVER_URL;
     Promise.all([
-      fetch(`${serverUrl}/api/games`, { credentials: "include" }).then((r) => r.json()),
-      fetch(`${serverUrl}/api/games/stats`, { credentials: "include" }).then((r) => r.json()),
+      fetch(`${serverUrl}/api/games`, { credentials: "include" }).then((r) => r.ok ? r.json() : []),
+      fetch(`${serverUrl}/api/games/stats`, { credentials: "include" }).then((r) => r.ok ? r.json() : null),
     ])
       .then(([games, stats]) => { setHistory(games); setStats(stats); setLoading(false); })
       .catch(() => setLoading(false));
@@ -298,7 +298,7 @@ function Dashboard() {
         </div>
 
         {/* By time control */}
-        {stats && Object.keys(stats.byTimeControl).length > 0 && (
+        {stats && stats.byTimeControl && Object.keys(stats.byTimeControl).length > 0 && (
           <div className="bg-surface-container border border-outline-variant rounded-xl overflow-hidden">
             <div className="px-4 py-3 border-b border-outline-variant">
               <h3 className="text-sm font-semibold text-on-surface">By Time Control</h3>
