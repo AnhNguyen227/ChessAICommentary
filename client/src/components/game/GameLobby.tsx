@@ -5,20 +5,22 @@ import { useAuth } from "../../context/AuthContext";
 const SERVER_URL = import.meta.env.VITE_SERVER_URL;
 
 function GameLobby() {
-  const { roomConfig: roomInfo, isHost, leaveRoom, discardRoom, startGame, error, awayJoined } = useGame();
+  const { roomConfig: roomInfo, isHost, leaveRoom, discardRoom, startGame, error, awayJoined, commentaryEnabled } = useGame();
   const { user } = useAuth();
 
   if (!roomInfo) return null;
 
   const canStart = roomInfo.isStockfish || awayJoined;
   const playerColor = isHost ? roomInfo.hostColor : roomInfo.hostColor === "white" ? "black" : "white";
-  const hostDisplayName = user?.displayName ?? "You";
   const timeLabel = `${roomInfo.timeControl.minutes}${roomInfo.timeControl.increment > 0 ? ` | ${roomInfo.timeControl.increment}` : ""} ${roomInfo.timeControl.minutes >= 15 ? "Rapid" : "Blitz"}`;
   const isBlitz = roomInfo.timeControl.minutes <= 5;
-  const myElo = isBlitz ? user?.chessComElo?.blitz : user?.chessComElo?.rapid;
+  const myEloSource = isHost ? roomInfo.hostElo : roomInfo.awayElo;
+  const myElo = isBlitz ? myEloSource?.blitz : myEloSource?.rapid;
   const oppEloSource = isHost ? roomInfo.awayElo : roomInfo.hostElo;
   const oppElo = isBlitz ? oppEloSource?.blitz : oppEloSource?.rapid;
   const eloLabel = isBlitz ? "Blitz" : "Rapid";
+  const myDisplayName = (isHost ? roomInfo.hostDisplayName : roomInfo.awayDisplayName) ?? user?.displayName ?? "You";
+  const myAvatar = (isHost ? roomInfo.hostAvatar : roomInfo.awayAvatar) ?? user?.avatar ?? null;
 
   const [copied, setCopied] = useState(false);
   const copyRoomId = () => {
@@ -98,18 +100,18 @@ function GameLobby() {
             <div className="lg:col-span-4 bg-surface-container-high rounded-2xl p-8 border border-outline-variant/30 flex flex-col items-center relative overflow-hidden group">
               <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
               {/* Avatar */}
-              {user?.avatar ? (
-                <img src={user.avatar} referrerPolicy="no-referrer" alt="" className="relative z-10 w-24 h-24 rounded-full border-4 border-primary shadow-xl mb-6 object-cover" />
+              {myAvatar ? (
+                <img src={myAvatar} referrerPolicy="no-referrer" alt="" className="relative z-10 w-24 h-24 rounded-full border-4 border-primary shadow-xl mb-6 object-cover" />
               ) : (
                 <div className="relative z-10 w-24 h-24 rounded-full bg-primary-container border-4 border-primary shadow-xl mb-6 flex items-center justify-center">
                   <span className="text-3xl font-bold text-on-primary-container font-headline">
-                    {hostDisplayName[0]?.toUpperCase() ?? "?"}
+                    {myDisplayName[0]?.toUpperCase() ?? "?"}
                   </span>
                 </div>
               )}
               <div className="text-center relative z-10">
                 <div className="flex items-center justify-center gap-2 mb-1">
-                  <span className="text-xl font-bold font-headline text-on-surface">{hostDisplayName}</span>
+                  <span className="text-xl font-bold font-headline text-on-surface">{myDisplayName}</span>
                 </div>
                 <p className="text-on-surface-variant text-sm font-medium capitalize">
                   Playing {playerColor === "white" || playerColor === "black" ? playerColor : "random color"}
@@ -146,10 +148,12 @@ function GameLobby() {
                       <span className="text-on-surface font-medium">Level {roomInfo.stockfishLevel}</span>
                     </li>
                   )}
-                  <li className="flex justify-between items-center text-sm">
-                    <span className="text-on-surface-variant">Commentary</span>
-                    <span className="font-medium text-primary">Gemini AI</span>
-                  </li>
+                  {commentaryEnabled && (
+                    <li className="flex justify-between items-center text-sm">
+                      <span className="text-on-surface-variant">Commentary</span>
+                      <span className="font-medium text-primary">Gemini AI</span>
+                    </li>
+                  )}
                   <li className="flex justify-between items-center text-sm">
                     <span className="text-on-surface-variant">Time Control</span>
                     <span className="text-on-surface font-medium">{timeLabel}</span>
@@ -184,24 +188,38 @@ function GameLobby() {
                 </>
               ) : awayJoined ? (
                 /* Opponent joined */
-                <>
-                  <div className="w-24 h-24 rounded-full bg-surface-container-highest border-4 border-primary shadow-xl mb-6 flex items-center justify-center">
-                    <span className="material-symbols-outlined text-4xl text-primary">person</span>
-                  </div>
-                  <div className="text-center">
-                    <div className="flex items-center justify-center gap-2 mb-1">
-                      <div className="w-2 h-2 rounded-full bg-primary" />
-                      <span className="text-xl font-bold font-headline text-on-surface">Opponent</span>
-                    </div>
-                    {oppElo && (
-                      <p className="text-outline text-xs mt-1">{eloLabel} {oppElo}</p>
-                    )}
-                    <p className="text-primary text-sm mt-1 font-medium">Connected — ready!</p>
-                    <span className="inline-block mt-4 px-3 py-1 bg-primary/20 text-primary text-xs font-bold rounded-full uppercase tracking-wider">
-                      Guest
-                    </span>
-                  </div>
-                </>
+                (() => {
+                  const oppName = isHost ? roomInfo.awayDisplayName : roomInfo.hostDisplayName;
+                  const oppAvatar = isHost ? roomInfo.awayAvatar : roomInfo.hostAvatar;
+                  return (
+                    <>
+                      {oppAvatar ? (
+                        <img src={oppAvatar} referrerPolicy="no-referrer" alt="" className="w-24 h-24 rounded-full border-4 border-primary shadow-xl mb-6 object-cover" />
+                      ) : (
+                        <div className="w-24 h-24 rounded-full bg-surface-container-highest border-4 border-primary shadow-xl mb-6 flex items-center justify-center">
+                          {oppName ? (
+                            <span className="text-3xl font-bold text-on-surface font-headline">{oppName[0].toUpperCase()}</span>
+                          ) : (
+                            <span className="material-symbols-outlined text-4xl text-primary">person</span>
+                          )}
+                        </div>
+                      )}
+                      <div className="text-center">
+                        <div className="flex items-center justify-center gap-2 mb-1">
+                          <div className="w-2 h-2 rounded-full bg-primary" />
+                          <span className="text-xl font-bold font-headline text-on-surface">{oppName ?? "Opponent"}</span>
+                        </div>
+                        {oppElo && (
+                          <p className="text-outline text-xs mt-1">{eloLabel} {oppElo}</p>
+                        )}
+                        <p className="text-primary text-sm mt-1 font-medium">Connected — ready!</p>
+                        <span className="inline-block mt-4 px-3 py-1 bg-primary/20 text-primary text-xs font-bold rounded-full uppercase tracking-wider">
+                          {isHost ? "Guest" : "Host"}
+                        </span>
+                      </div>
+                    </>
+                  );
+                })()
               ) : (
                 /* Waiting */
                 <>

@@ -41,6 +41,10 @@ interface RoomConfig {
   stockfishLevel: number | null;
   hostElo?: Elo | null;
   awayElo?: Elo | null;
+  hostDisplayName?: string | null;
+  awayDisplayName?: string | null;
+  hostAvatar?: string | null;
+  awayAvatar?: string | null;
 }
 
 type GamePhase = "menu" | "waiting" | "active" | "result";

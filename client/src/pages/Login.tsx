@@ -1,4 +1,6 @@
+import { Navigate } from "react-router-dom";
 import { Chessboard } from "react-chessboard";
+import { useAuth } from "../context/AuthContext";
 
 const SERVER_URL = import.meta.env.VITE_SERVER_URL;
 
@@ -6,6 +8,10 @@ const SERVER_URL = import.meta.env.VITE_SERVER_URL;
 const PREVIEW_FEN = "r1bqk2r/pppp1ppp/2n2n2/2b1p3/2B1P3/2NP1N2/PPP2PPP/R1BQK2R b KQkq - 0 5";
 
 function Login() {
+  const { user, loading } = useAuth();
+  if (loading) return null;
+  if (user) return <Navigate to="/dashboard" replace />;
+
   return (
     <div className="min-h-screen bg-background text-on-background flex flex-col">
       {/* Nav */}

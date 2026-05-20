@@ -71,8 +71,9 @@ const handleGameOver = async (
   sfEvalProcesses.get(roomId)?.kill();
   sfEvalProcesses.delete(roomId);
 
-  // Clean up commentary session
+  // Clean up commentary session and eval tracking
   commentarySessions.delete(roomId);
+  roomEvals.delete(roomId);
 
   deleteRoom(roomId);
 };
@@ -159,14 +160,18 @@ async function handleEval(io: Server, evaluation: number, roomId: string, chess:
   const swing = evalAfter - evalBefore;
   roomEvals.set(roomId, evalAfter);
 
+  const moveNumber = chess.history().length;
+
   let trigger: CommentaryTrigger | null = null;
 
   if (chess.isGameOver() && chess.isCheckmate()) {
     trigger = "checkmate";
-  } else if (Math.abs(swing) >= 3) {
+  } else if (Math.abs(swing) >= 2) {
     trigger = swing < 0 ? "blunder" : "brilliant";
-  } else if (Math.abs(swing) >= 1) {
+  } else if (Math.abs(swing) >= 0.5) {
     trigger = "eval_shift";
+  } else if (moveNumber <= 6) {
+    trigger = "opening";
   }
 
   const chat = commentarySessions.get(roomId);
@@ -176,7 +181,7 @@ async function handleEval(io: Server, evaluation: number, roomId: string, chess:
       io.to(roomId).emit("game:commentary", { text: commentary });
       return true;
     } catch (err) {
-      console.warn("Commentary failed, skipping:", err);
+      console.error("Commentary error:", err);
     }
   }
 
@@ -341,10 +346,22 @@ export const initSocket = (io: Server): void => {
         roomTimers.delete(data.roomId);
       }
 
-      const [hostUser, awayUser] = await Promise.all([
-        room.game.host ? User.findById(room.game.host) : null,
-        data.userId ? User.findById(data.userId) : null,
-      ]);
+      let hostElo = null;
+      let awayElo = null;
+      let hUser = null;
+      let aUser = null;
+      try {
+        const [hostUser, awayUser] = await Promise.all([
+          room.game.host ? User.findById(room.game.host) : null,
+          data.userId ? User.findById(data.userId) : null,
+        ]);
+        hostElo = hostUser?.chessComElo ?? null;
+        awayElo = awayUser?.chessComElo ?? null;
+        hUser = hostUser;
+        aUser = awayUser;
+      } catch {
+        // ELO lookup failed — proceed without it
+      }
 
       io.to(data.roomId).emit("room:joined", {
         roomId: data.roomId,
@@ -352,8 +369,12 @@ export const initSocket = (io: Server): void => {
         timeControl: room.game.timeControl,
         isStockfish: room.game.isStockfish,
         stockfishLevel: room.game.stockfishLevel ?? null,
-        hostElo: hostUser?.chessComElo ?? null,
-        awayElo: awayUser?.chessComElo ?? null,
+        hostElo,
+        awayElo,
+        hostDisplayName: hUser?.displayName ?? null,
+        awayDisplayName: aUser?.displayName ?? null,
+        hostAvatar: hUser?.avatar ?? null,
+        awayAvatar: aUser?.avatar ?? null,
       });
     });
 

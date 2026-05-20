@@ -10,7 +10,7 @@ const router = express.Router();
 // @access  Public
 router.get(
   "/google",
-  passport.authenticate("google", { scope: ["profile", "email"] })
+  passport.authenticate("google", { scope: ["profile", "email"], prompt: "select_account" })
 );
 
 // @route   GET /auth/google/callback
