@@ -90,7 +90,7 @@ function Profile() {
             />
           ) : (
             <div className="w-16 h-16 rounded-full bg-primary-container flex items-center justify-center text-2xl font-bold text-on-primary-container flex-shrink-0">
-              {user.displayName[0]}
+              {user.displayName?.[0] ?? "?"}
             </div>
           )}
           <div className="flex-1 min-w-0">
