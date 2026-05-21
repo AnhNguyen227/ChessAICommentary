@@ -5,6 +5,7 @@ import session from "express-session";
 import MongoStore from "connect-mongo";
 import passport from "passport";
 import dotenv from "dotenv";
+import path from "path";
 import { connectDB } from "./config/db";
 import authRoutes from "./routes/auth";
 import "./config/passport";
@@ -40,11 +41,11 @@ app.use(session({
   cookie: {
     maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
     secure: isProd,
-    sameSite: isProd ? "none" : "lax",
+    sameSite: "lax",
     httpOnly: true,
   },
 }));
-console.log("Session cookie mode:", isProd ? "secure/SameSite=None (prod)" : "lax (dev)");
+console.log("Session cookie mode:", isProd ? "secure/SameSite=Lax (prod)" : "lax (dev)");
 app.use(passport.initialize());
 app.use(passport.session());
 
@@ -52,10 +53,19 @@ app.use(passport.session());
 app.use("/auth", authRoutes);
 app.use("/api/games", gamesRouter);
 
-// Health check
-app.get("/", (req, res) => {
+// Health check (API only — catch-all below handles the rest)
+app.get("/api/health", (_req, res) => {
   res.json({ status: "CAIC server running" });
 });
+
+// Serve React frontend in production
+if (isProd) {
+  const clientDist = path.join(__dirname, "../../client/dist");
+  app.use(express.static(clientDist));
+  app.get("*", (_req, res) => {
+    res.sendFile(path.join(clientDist, "index.html"));
+  });
+}
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
