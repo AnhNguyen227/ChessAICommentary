@@ -24,10 +24,10 @@ A real-time chess platform where players compete in unrated games against each o
 | Backend | Node.js, Express 5, TypeScript |
 | Database | MongoDB Atlas |
 | Real-time | Socket.IO |
-| Auth | Google OAuth 2.0 via Passport.js |
+| Auth | Google OAuth 2.0 via Passport.js, `express-session` + MongoDB session store |
 | Chess Engine | Stockfish 16.1 (UCI protocol, two processes per room) |
 | AI Commentary | Google Gemini API (`gemini-2.5-flash`) |
-| Deployment | Render (backend), Vercel (frontend) |
+| Deployment | Render (fullstack — Express serves the React build) |
 
 ---
 
@@ -64,6 +64,8 @@ SESSION_SECRET=any_long_random_string
 CLIENT_URL=http://localhost:5173
 STOCKFISH_PATH=./engines/stockfish.exe
 GEMINI_API_KEY=your_gemini_api_key
+# SERVER_URL is only set in production (e.g. https://yourapp.onrender.com)
+# Leave unset for local dev
 ```
 
 `client/.env`:
@@ -71,13 +73,15 @@ GEMINI_API_KEY=your_gemini_api_key
 VITE_SERVER_URL=http://localhost:5000
 ```
 
+> In production, `VITE_SERVER_URL` should be an empty string — the React app and Express server share the same origin, so all API calls use relative URLs automatically.
+
 ### Running Locally
 
 ```bash
-# From /server
+# Terminal 1 — from /server
 npm run dev
 
-# From /client
+# Terminal 2 — from /client
 npm run dev
 ```
 
@@ -97,7 +101,7 @@ ChessAICommentary/
 │       └── socket/         # Socket.IO client setup
 ├── server/                 # Express backend
 │   ├── src/
-│   │   ├── routes/         # REST API routes (auth, chess-com)
+│   │   ├── routes/         # REST API routes (auth, games)
 │   │   ├── controllers/    # Route handlers
 │   │   ├── models/         # Mongoose schemas (User, Game)
 │   │   ├── socket/         # Socket.IO event handlers & game loop
@@ -124,9 +128,9 @@ Gemini 2.5 Flash is triggered by significant moments after each move:
 | Trigger | Condition |
 |---|---|
 | `opening` | First 6 moves of the game |
-| `brilliant` | Eval swing ≥ +2.0 pawns |
-| `blunder` | Eval swing ≥ −2.0 pawns |
-| `eval_shift` | Eval swing ≥ ±0.5 pawns |
+| `brilliant` | Eval swing ≥ +2.0 pawns in your favor |
+| `blunder` | Eval swing ≥ −2.0 pawns against you |
+| `eval_shift` | Any eval swing ≥ ±0.5 pawns |
 | `checkmate` | Game ends in checkmate |
 
 Players can set a **commentary style** before the game (e.g. *"Commentate like an English gentleman from the 1800s"*).
@@ -153,13 +157,32 @@ This ensures the eval bar and commentary reflect objective board truth, not the 
 
 ## Deployment
 
-The app is deployed with a split architecture:
+The app runs as a single service on [Render](https://render.com). Express serves both the API and the compiled React frontend, keeping everything on one origin (no cross-origin cookie issues).
 
-- **Backend** — [Render](https://render.com) (free tier, Node web service)
-  - Build: `npm install && npm run build` (downloads Stockfish Linux binary automatically)
-  - Start: `npm start`
-- **Frontend** — [Vercel](https://vercel.com) (free tier)
-  - Root directory: `client`, auto-detected as Vite
+**Render settings:**
+
+| Setting | Value |
+|---|---|
+| Build Command | `cd server && npm install --include=dev && npm run build` |
+| Start Command | `cd server && npm start` |
+| Root Directory | *(blank)* |
+
+The build script automatically installs client dependencies, compiles the React app, compiles TypeScript, and downloads the Stockfish Linux binary if not cached.
+
+**Required environment variables on Render:**
+
+```
+MONGO_URI
+GOOGLE_CLIENT_ID
+GOOGLE_CLIENT_SECRET
+SESSION_SECRET
+GEMINI_API_KEY
+SERVER_URL=https://your-app.onrender.com
+CLIENT_URL=https://your-app.onrender.com
+VITE_SERVER_URL=
+```
+
+**Google Cloud Console** — add `https://your-app.onrender.com/auth/google/callback` as an authorized redirect URI.
 
 ---
 

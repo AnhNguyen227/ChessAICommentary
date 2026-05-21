@@ -2,7 +2,7 @@ import { Navigate } from "react-router-dom";
 import { Chessboard } from "react-chessboard";
 import { useAuth } from "../context/AuthContext";
 
-const SERVER_URL = import.meta.env.VITE_SERVER_URL;
+const SERVER_URL = import.meta.env.VITE_SERVER_URL ?? "";
 
 // Italian Game after 1.e4 e5 2.Nf3 Nc6 3.Bc4 Bc5 4.c3 Nf6
 const PREVIEW_FEN = "r1bqk2r/pppp1ppp/2n2n2/2b1p3/2B1P3/2NP1N2/PPP2PPP/R1BQK2R b KQkq - 0 5";

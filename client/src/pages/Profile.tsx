@@ -15,7 +15,7 @@ function Profile() {
     setLinking(true);
     setChessComStatus(null);
     try {
-      const res = await fetch(`${import.meta.env.VITE_SERVER_URL}/auth/chess-com`, {
+      const res = await fetch(`${(import.meta.env.VITE_SERVER_URL ?? "")}/auth/chess-com`, {
         method: "PUT",
         credentials: "include",
         headers: { "Content-Type": "application/json" },

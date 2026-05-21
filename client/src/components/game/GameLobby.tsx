@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useGame } from "../../context/GameContext";
 import { useAuth } from "../../context/AuthContext";
 
-const SERVER_URL = import.meta.env.VITE_SERVER_URL;
+const SERVER_URL = import.meta.env.VITE_SERVER_URL ?? "";
 
 function GameLobby() {
   const { roomConfig: roomInfo, isHost, leaveRoom, discardRoom, startGame, error, awayJoined, commentaryEnabled } = useGame();

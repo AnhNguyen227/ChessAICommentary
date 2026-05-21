@@ -113,7 +113,7 @@ function Dashboard() {
     setLinking(true);
     setChessComStatus(null);
     try {
-      const res = await fetch(`${import.meta.env.VITE_SERVER_URL}/auth/chess-com`, {
+      const res = await fetch(`${import.meta.env.VITE_SERVER_URL ?? ""}/auth/chess-com`, {
         method: "PUT",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -131,7 +131,7 @@ function Dashboard() {
   };
 
   useEffect(() => {
-    const serverUrl = import.meta.env.VITE_SERVER_URL;
+    const serverUrl = import.meta.env.VITE_SERVER_URL ?? "";
     Promise.all([
       fetch(`${serverUrl}/api/games`, { credentials: "include" }).then((r) => r.ok ? r.json() : []),
       fetch(`${serverUrl}/api/games/stats`, { credentials: "include" }).then((r) => r.ok ? r.json() : null),

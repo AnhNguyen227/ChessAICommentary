@@ -3,7 +3,7 @@ import { Chessboard } from "react-chessboard";
 import { useGame } from "../../context/GameContext";
 import { useAuth } from "../../context/AuthContext";
 
-const SERVER_URL = import.meta.env.VITE_SERVER_URL;
+const SERVER_URL = import.meta.env.VITE_SERVER_URL ?? "";
 
 const TIME_CONTROLS = [
   { key: "blitz-3", label: "3|0", sub: "Blitz" },
