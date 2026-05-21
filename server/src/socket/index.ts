@@ -427,12 +427,30 @@ export const initSocket = (io: Server): void => {
       const chess = new Chess();
 
       // Create a dedicated Stockfish process for evaluations
-      const evalSf = await createStockfishProcess();
+      let evalSf;
+      try {
+        evalSf = await createStockfishProcess();
+      } catch (err) {
+        console.error("Failed to start eval Stockfish:", err);
+        socket.emit("game:error", { message: "Engine failed to start. Check server logs." });
+        room.game.status = "waiting";
+        await room.game.save();
+        return;
+      }
       sfEvalProcesses.set(data.roomId, evalSf);
 
       // If Stockfish is playing as white, make the first move immediately with a dedicated Stockfish process opponent
       if (room.game.isStockfish) {
-        const awaySf = await createStockfishProcess();
+        let awaySf;
+        try {
+          awaySf = await createStockfishProcess();
+        } catch (err) {
+          console.error("Failed to start opponent Stockfish:", err);
+          socket.emit("game:error", { message: "Engine failed to start. Check server logs." });
+          room.game.status = "waiting";
+          await room.game.save();
+          return;
+        }
         sfAwayProcesses.set(data.roomId, awaySf);
       }
 
