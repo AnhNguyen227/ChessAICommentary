@@ -4,7 +4,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "nodemon --exec ts-node src/index.ts",
-    "build": "cd ../client && npm install && npm run build && cd ../server && tsc && ([ -f engines/stockfish ] || (mkdir -p engines && curl -sL https://github.com/official-stockfish/Stockfish/releases/download/sf_16.1/stockfish-ubuntu-x86-64-avx2.tar -o sf.tar && tar xf sf.tar && mv stockfish/stockfish-ubuntu-x86-64-avx2 engines/stockfish && rm -rf sf.tar stockfish)) && chmod +x engines/stockfish || true",
+    "build": "cd ../client && npm install --include=dev && npm run build && cd ../server && tsc && ([ -f engines/stockfish ] || (mkdir -p engines && curl -sL https://github.com/official-stockfish/Stockfish/releases/download/sf_16.1/stockfish-ubuntu-x86-64-avx2.tar -o sf.tar && tar xf sf.tar && mv stockfish/stockfish-ubuntu-x86-64-avx2 engines/stockfish && rm -rf sf.tar stockfish)) && chmod +x engines/stockfish || true",
     "start": "node dist/index.js",
     "lint": "eslint src/**/*.ts"
   },
